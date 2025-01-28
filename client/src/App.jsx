@@ -1,7 +1,6 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import Navbar from './components/common/Navbar';
 import Footer from './components/common/Footer';
 import Home from './pages/Home';
 import Search from './pages/Search';
@@ -11,29 +10,42 @@ import Profile from './pages/Profile';
 import Admin from './pages/Admin';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import { ToastContainer } from 'react-toastify';  // Import ToastContainer
-import 'react-toastify/dist/ReactToastify.css';  // Import Toastify styles
+
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import UserDashboard from './components/dash/UserDashboard';
+import AdminDashboard from './components/dash/AdminDashboard';
 
 const App = () => {
+  const location = useLocation();
+  const showFooter = 
+    location.pathname === '/' || 
+    location.pathname === '/login' || 
+    location.pathname === '/register';
+
   return (
     <AuthProvider>
       <div className="min-h-screen flex flex-col">
-        <Navbar />
         <main className="flex-grow">
           <Routes>
+            {/* Public routes */}
             <Route path="/" element={<Home />} />
             <Route path="/search" element={<Search />} />
-            <Route path="/cars/:id" element={<CarDetails />} />
+            <Route path="/cars" element={<CarDetails />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+
+            {/* Protected routes */}
             <Route path="/booking/:id" element={<Booking />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/admin" element={<Admin />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+
+            <Route path="/user-dashboard" element={<UserDashboard />} />
+            <Route path="/admin-dashboard" element={<AdminDashboard />} />
           </Routes>
         </main>
-        <Footer />
+        {showFooter && <Footer />} 
       </div>
-      {/* Add ToastContainer to the bottom of the App component */}
       <ToastContainer />
     </AuthProvider>
   );

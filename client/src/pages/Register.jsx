@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';  // Import toast
-import 'react-toastify/dist/ReactToastify.css';  // Import styles for toastify
+import { toast } from 'react-toastify';
+import { Mail, Lock, User, Phone, CreditCard, Loader2 } from 'lucide-react';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -13,7 +14,6 @@ const Register = () => {
     phoneNumber: '',
     drivingLicense: ''
   });
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -25,7 +25,6 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
 
     try {
@@ -43,141 +42,196 @@ const Register = () => {
         throw new Error(data.message || 'Registration failed');
       }
 
-      // Save user data and token to localStorage
       localStorage.setItem('userToken', data.token);
       localStorage.setItem('userData', JSON.stringify(data));
 
-      // Show success notification
-      toast.success('Registration successful! Redirecting to home...', {
-        position: toast.POSITION.TOP_RIGHT,
-      });
-
-      // Redirect to home page after success
+      toast.success('Registration successful! Redirecting to home...');
       navigate('/');
     } catch (err) {
-      setError(err.message);
-      // Show error notification
-      toast.error(`Error: ${err.message}`, {
-        position: toast.POSITION.TOP_RIGHT,
-      });
+      toast.error(`Error: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
-          </h2>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-              {error}
-            </div>
-          )}
-          <div className="rounded-md shadow-sm space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-                  First Name
-                </label>
-                <input
-                  id="firstName"
-                  name="firstName"
-                  type="text"
-                  required
-                  className="mt-1 appearance-none rounded relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                />
-              </div>
-              <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-                  Last Name
-                </label>
-                <input
-                  id="lastName"
-                  name="lastName"
-                  type="text"
-                  required
-                  className="mt-1 appearance-none rounded relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                className="mt-1 appearance-none rounded relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                value={formData.email}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="mt-1 appearance-none rounded relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                value={formData.password}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">
-                Phone Number
-              </label>
-              <input
-                id="phoneNumber"
-                name="phoneNumber"
-                type="tel"
-                required
-                className="mt-1 appearance-none rounded relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                value={formData.phoneNumber}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label htmlFor="drivingLicense" className="block text-sm font-medium text-gray-700">
-                Driving License Number
-              </label>
-              <input
-                id="drivingLicense"
-                name="drivingLicense"
-                type="text"
-                required
-                className="mt-1 appearance-none rounded relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                value={formData.drivingLicense}
-                onChange={handleChange}
-              />
-            </div>
+    <div className="min-h-screen bg-gradient-to-r from-blue-600 to-purple-600">
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <div className="w-full max-w-2xl bg-white rounded-3xl shadow-xl p-8">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-gray-900">Create Your Account</h1>
+            <p className="text-sm text-gray-600 mt-2">
+              Join us and start renting your dream car today
+            </p>
           </div>
 
-          <div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* First Name */}
+              <div>
+                <label className="block text-sm text-gray-700 mb-2">First Name</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-4 flex items-center">
+                    <User className="h-5 w-5 text-gray-400" />
+                  </span>
+                  <input
+                    type="text"
+                    name="firstName"
+                    required
+                    placeholder="Enter first name"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+
+              {/* Last Name */}
+              <div>
+                <label className="block text-sm text-gray-700 mb-2">Last Name</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-4 flex items-center">
+                    <User className="h-5 w-5 text-gray-400" />
+                  </span>
+                  <input
+                    type="text"
+                    name="lastName"
+                    required
+                    placeholder="Enter last name"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+
+              {/* Email */}
+              <div className="md:col-span-2">
+                <label className="block text-sm text-gray-700 mb-2">Email address</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-4 flex items-center">
+                    <Mail className="h-5 w-5 text-gray-400" />
+                  </span>
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    placeholder="Enter your email"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    value={formData.email}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+
+              {/* Password */}
+              <div className="md:col-span-2">
+                <label className="block text-sm text-gray-700 mb-2">Password</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-4 flex items-center">
+                    <Lock className="h-5 w-5 text-gray-400" />
+                  </span>
+                  <input
+                    type="password"
+                    name="password"
+                    required
+                    placeholder="Create a password"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    value={formData.password}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+
+              {/* Phone Number */}
+              <div>
+                <label className="block text-sm text-gray-700 mb-2">Phone Number</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-4 flex items-center">
+                    <Phone className="h-5 w-5 text-gray-400" />
+                  </span>
+                  <input
+                    type="tel"
+                    name="phoneNumber"
+                    required
+                    placeholder="Enter phone number"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    value={formData.phoneNumber}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+
+              {/* Driving License */}
+              <div>
+                <label className="block text-sm text-gray-700 mb-2">
+                  Driving License Number
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-4 flex items-center">
+                    <CreditCard className="h-5 w-5 text-gray-400" />
+                  </span>
+                  <input
+                    type="text"
+                    name="drivingLicense"
+                    required
+                    placeholder="Enter license number"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    value={formData.drivingLicense}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="terms"
+                required
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label htmlFor="terms" className="ml-2 text-sm text-gray-600">
+                I agree to the{' '}
+                <button type="button" className="text-blue-600 hover:text-blue-500">
+                  Terms of Service
+                </button>{' '}
+                and{' '}
+                <button type="button" className="text-blue-600 hover:text-blue-500">
+                  Privacy Policy
+                </button>
+              </label>
+            </div>
+
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-xl font-medium hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
             >
-              {loading ? 'Creating account...' : 'Create account'}
+              {loading ? (
+                <div className="flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  <span>Creating account...</span>
+                </div>
+              ) : (
+                <span>Create account</span>
+              )}
             </button>
-          </div>
-        </form>
+
+            <div className="text-center">
+              <p className="text-sm text-gray-600">
+                Already have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => navigate('/login')}
+                  className="text-blue-600 hover:text-blue-500 font-medium"
+                >
+                  Sign in
+                </button>
+              </p>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
