@@ -15,6 +15,8 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import UserDashboard from './components/dash/UserDashboard';
 import AdminDashboard from './components/dash/AdminDashboard';
+import Users from './pages/Users';
+
 
 const App = () => {
   const location = useLocation();
@@ -32,6 +34,9 @@ const App = () => {
             <Route path="/" element={<Home />} />
             <Route path="/search" element={<Search />} />
             <Route path="/cars" element={<CarDetails />} />
+            <Route path="/users" element={<Users />} />
+            
+
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
 

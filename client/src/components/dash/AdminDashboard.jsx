@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   BarChart,
-  Users,
+  
   Car,
   Calendar,
   DollarSign,
@@ -14,11 +14,15 @@ import {
   X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import CarDetails from '../../pages/CarDetails';
+import Users from '../../pages/Users';
+import { Users as UsersIcon } from 'lucide-react';
+
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: BarChart },
-  { id: 'users', label: 'Users', icon: Users },
-  { id: 'vehicles', label: 'Vehicles', icon: Car },
+  { id: 'users', label: 'Users', icon: UsersIcon },
+  { id: 'cars', label: 'Cars', icon: Car },
   { id: 'bookings', label: 'Bookings', icon: Calendar },
   { id: 'payments', label: 'Payments', icon: DollarSign },
   { id: 'settings', label: 'Settings', icon: Settings },
@@ -60,6 +64,73 @@ const LogoutModal = ({ isOpen, onClose, onConfirm }) => {
   );
 };
 
+const DashboardContent = () => (
+  <>
+    <div className="bg-white rounded-lg shadow-sm p-6">
+      <h2 className="text-2xl font-bold text-gray-900 mb-4">Dashboard Overview</h2>
+      <p className="text-gray-600">
+        Welcome to the dashboard. Select an item from the sidebar to view different sections.
+      </p>
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Stats</h3>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-gray-600">Total Users</span>
+            <span className="font-semibold text-gray-900">1,234</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-600">Active Sessions</span>
+            <span className="font-semibold text-gray-900">56</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-600">Today's Revenue</span>
+            <span className="font-semibold text-gray-900">$1,234</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+        <div className="space-y-4">
+          <div className="flex items-center space-x-3">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span className="text-gray-600">New user registration</span>
+          </div>
+          <div className="flex items-center space-x-3">
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <span className="text-gray-600">Payment received</span>
+          </div>
+          <div className="flex items-center space-x-3">
+            <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+            <span className="text-gray-600">System update completed</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">System Status</h3>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-gray-600">Server Status</span>
+            <span className="text-green-500 font-medium">Online</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-600">Last Backup</span>
+            <span className="text-gray-900">2 hours ago</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-600">System Load</span>
+            <span className="text-gray-900">42%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </>
+);
+
 const AdminDashboard = () => {
   const [activeItem, setActiveItem] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -80,6 +151,28 @@ const AdminDashboard = () => {
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const renderContent = () => {
+    switch (activeItem) {
+      case 'cars':
+        return <CarDetails />;
+      case 'users':
+          return <Users />;  
+      case 'dashboard':
+        return <DashboardContent />;
+      default:
+        return (
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              {activeItem.charAt(0).toUpperCase() + activeItem.slice(1)}
+            </h2>
+            <p className="text-gray-600">
+              This section is under development. Please check back later.
+            </p>
+          </div>
+        );
+    }
   };
 
   return (
@@ -166,68 +259,7 @@ const AdminDashboard = () => {
 
         <main className="flex-1 overflow-x-hidden overflow-y-auto">
           <div className="p-6">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">{activeItem.charAt(0).toUpperCase() + activeItem.slice(1)}</h2>
-              <p className="text-gray-600">
-                Welcome to the {activeItem} section. Select an item from the sidebar to view different sections.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Stats</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Total Users</span>
-                    <span className="font-semibold text-gray-900">1,234</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Active Sessions</span>
-                    <span className="font-semibold text-gray-900">56</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Today's Revenue</span>
-                    <span className="font-semibold text-gray-900">$1,234</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-gray-600">New user registration</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <span className="text-gray-600">Payment received</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                    <span className="text-gray-600">System update completed</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">System Status</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Server Status</span>
-                    <span className="text-green-500 font-medium">Online</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Last Backup</span>
-                    <span className="text-gray-900">2 hours ago</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">System Load</span>
-                    <span className="text-gray-900">42%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            {renderContent()}
           </div>
         </main>
       </div>

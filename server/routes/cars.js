@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect, admin } = require('../middleware/auth');
+const upload = require('../config/multerConfig');
 const {
   getCars,
   getCarById,
@@ -11,11 +12,11 @@ const {
 
 router.route('/')
   .get(getCars)
-  .post(protect, admin, createCar);
+  .post(protect, admin, upload.array('images', 5), createCar);
 
 router.route('/:id')
   .get(getCarById)
-  .put(protect, admin, updateCar)
+  .put(protect, admin, upload.array('images', 5), updateCar)
   .delete(protect, admin, deleteCar);
 
 module.exports = router;

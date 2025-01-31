@@ -3,6 +3,7 @@ const cors = require('cors');
 const { PORT } = require('./config/config');
 const connectDB = require('./config/db');
 const { errorHandler } = require('./middleware/errorHandler');
+const path = require('path');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -29,6 +30,9 @@ app.use('/api/reviews', reviewRoutes);
 
 // Error handling middleware
 app.use(errorHandler);
+
+// Serve static files from the 'uploads' directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Start server
 app.listen(PORT, () => {

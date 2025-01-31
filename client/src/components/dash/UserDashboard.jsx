@@ -14,6 +14,8 @@ import {
   X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+
 
 // Define menuItems array
 const menuItems = [
@@ -69,11 +71,17 @@ const UserDashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { logout } = useAuth();
+  const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    setShowLogoutModal(false);
-    // You might want to redirect to login page here
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    } finally {
+      setShowLogoutModal(false);
+    }
   };
 
   const toggleSidebar = () => {

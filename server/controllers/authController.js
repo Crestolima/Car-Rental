@@ -59,4 +59,16 @@ const generateToken = (id) => {
   return jwt.sign({ id }, JWT_SECRET, { expiresIn: JWT_EXPIRE });
 };
 
-module.exports = { registerUser, loginUser };
+
+// Fetch all users except admins
+const getUsers = async (req, res) => {
+  try {
+    // Fetch all users except for those with the role 'admin'
+    const users = await User.find({ role: { $ne: 'admin' } });
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching users' });
+  }
+};
+
+module.exports = { registerUser, loginUser, getUsers };

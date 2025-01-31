@@ -1,222 +1,466 @@
 import React, { useState, useEffect } from "react";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import api from "../services/api";
 
 const CarDetails = () => {
   const [cars, setCars] = useState([]);
-  const [filteredCars, setFilteredCars] = useState([]);
-  const [carType, setCarType] = useState("all");
-  const [showModal, setShowModal] = useState(false);
-  const [selectedCar, setSelectedCar] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [sortOption, setSortOption] = useState("");
+  const [open, setOpen] = useState(false);
+  const [carData, setCarData] = useState({
+    make: "",
+    model: "",
+    year: "",
+    type: "",
+    transmission: "",
+    pricePerDay: "",
+    available: true,
+    images: [],
+    features: [],
+    location: {
+      city: "",
+      address: "",
+      coordinates: {
+        latitude: "",
+        longitude: ""
+      }
+    }
+  });
+  const [editMode, setEditMode] = useState(false);
+  const [selectedCarId, setSelectedCarId] = useState(null);
+  const [feature, setFeature] = useState("");
 
   useEffect(() => {
-    const fetchCars = async () => {
-      try {
-        const response = await fetch("/api/cars");
-        const data = await response.json();
-        setCars(data);
-        setFilteredCars(data);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching cars:", error);
-        setLoading(false);
-      }
-    };
-
     fetchCars();
   }, []);
 
-  const handleTypeChange = (e) => {
-    const value = e.target.value;
-    setCarType(value);
-    if (value === "all") {
-      setFilteredCars(cars);
-    } else {
-      setFilteredCars(cars.filter((car) => car.type === value));
+  const fetchCars = async () => {
+    try {
+      const response = await api.get("/cars");
+      setCars(response.data);
+    } catch (error) {
+      toast.error("Error fetching cars");
     }
   };
 
-  const handleSortChange = (e) => {
-    const value = e.target.value;
-    setSortOption(value);
-    let sortedCars = [...filteredCars];
-
-    switch (value) {
-      case "price-asc":
-        sortedCars.sort((a, b) => a.pricePerDay - b.pricePerDay);
-        break;
-      case "price-desc":
-        sortedCars.sort((a, b) => b.pricePerDay - a.pricePerDay);
-        break;
-      case "year-asc":
-        sortedCars.sort((a, b) => a.year - b.year);
-        break;
-      case "year-desc":
-        sortedCars.sort((a, b) => b.year - a.year);
-        break;
-      default:
-        break;
-    }
-
-    setFilteredCars(sortedCars);
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+  
+    setCarData((prev) => {
+      const keys = name.split(".");
+      if (keys.length === 2) {
+        return {
+          ...prev,
+          [keys[0]]: {
+            ...prev[keys[0]],
+            [keys[1]]: value,
+          },
+        };
+      }
+      return { ...prev, [name]: value };
+    });
   };
 
-  const handleOpen = (car) => {
-    setSelectedCar(car);
-    setShowModal(true);
+  const handleCoordinatesChange = (e) => {
+    const { name, value } = e.target;
+    setCarData(prev => ({
+      ...prev,
+      location: {
+        ...prev.location,
+        coordinates: {
+          ...prev.location.coordinates,
+          [name]: value
+        }
+      }
+    }));
+  };
+
+  const handleFeatureAdd = () => {
+    if (feature.trim()) {
+      setCarData(prev => ({
+        ...prev,
+        features: [...prev.features, feature.trim()]
+      }));
+      setFeature("");
+    }
+  };
+
+  const handleFeatureRemove = (indexToRemove) => {
+    setCarData(prev => ({
+      ...prev,
+      features: prev.features.filter((_, index) => index !== indexToRemove)
+    }));
+  };
+
+  const handleImageUpload = (e) => {
+    const files = Array.from(e.target.files);
+    setCarData(prev => ({
+      ...prev,
+      images: [...prev.images, ...files]
+    }));
+  };
+
+  const handleImageRemove = (indexToRemove) => {
+    setCarData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, index) => index !== indexToRemove)
+    }));
+  };
+
+  const handleSubmit = async () => {
+    console.log("Submitting Car Data:", carData); // Debugging log
+  
+    if (!carData.location.city || !carData.location.address) {
+      toast.error("City and Address are required.");
+      return;
+    }
+  
+    try {
+      const formData = new FormData();
+      Object.keys(carData).forEach((key) => {
+        if (key !== "images" && key !== "features") {
+          formData.append(key, typeof carData[key] === "object" ? JSON.stringify(carData[key]) : carData[key]);
+        }
+      });
+  
+      formData.append("features", JSON.stringify(carData.features));
+      carData.images.forEach((image) => {
+        if (image instanceof File) {
+          formData.append("images", image);
+        }
+      });
+  
+      if (editMode) {
+        await api.put(`/cars/${selectedCarId}`, formData, { headers: { "Content-Type": "multipart/form-data" } });
+        toast.success("Car updated successfully");
+      } else {
+        await api.post("/cars", formData, { headers: { "Content-Type": "multipart/form-data" } });
+        toast.success("Car added successfully");
+      }
+      
+      handleClose();
+      fetchCars();
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error(error.response?.data?.message || "Error saving car");
+    }
+  };
+
+  const handleEdit = (car) => {
+    setCarData(car);
+    setSelectedCarId(car._id);
+    setEditMode(true);
+    setOpen(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this car?")) {
+      try {
+        await api.delete(`/cars/${id}`);
+        toast.success("Car deleted successfully");
+        fetchCars();
+      } catch (error) {
+        toast.error("Error deleting car");
+      }
+    }
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    setEditMode(false);
+    setCarData({
+      make: "",
+      model: "",
+      year: "",
+      type: "",
+      transmission: "",
+      pricePerDay: "",
+      available: true,
+      images: [],
+      features: [],
+      location: {
+        city: "",
+        address: "",
+        coordinates: {
+          latitude: "",
+          longitude: ""
+        }
+      }
+    });
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="mb-12">
-        <h1 className="text-4xl font-bold text-gray-900 mb-8">
-          Available Cars
-        </h1>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-          <select
-            value={carType}
-            onChange={handleTypeChange}
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white shadow-sm"
-          >
-            <option value="all">All Types</option>
-            <option value="SUV">SUV</option>
-            <option value="Sedan">Sedan</option>
-            <option value="Hatchback">Hatchback</option>
-            <option value="Truck">Truck</option>
-          </select>
+    <div className="p-6">
+      <ToastContainer />
+      <button
+        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        onClick={() => setOpen(true)}
+      >
+        Add Car
+      </button>
 
-          <select
-            value={sortOption}
-            onChange={handleSortChange}
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white shadow-sm"
-          >
-            <option value="">Sort by</option>
-            <option value="price-asc">Price: Low to High</option>
-            <option value="price-desc">Price: High to Low</option>
-            <option value="year-asc">Year: Old to New</option>
-            <option value="year-desc">Year: New to Old</option>
-          </select>
+      <div className="mt-6">
+        <div className="overflow-x-auto rounded-lg shadow">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Make</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Model</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price/Day</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Available</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {cars.map((car) => (
+                <tr key={car._id}>
+                  <td className="px-6 py-4 whitespace-nowrap">{car.make}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{car.model}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{car.year}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{car.type}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">${car.pricePerDay}/day</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {car.available ? "Available" : "Not Available"}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">{car.location.city}</td>
+                  <td className="px-6 py-4 whitespace-nowrap space-x-2">
+                    <button
+                      className="text-blue-600 hover:text-blue-900"
+                      onClick={() => handleEdit(car)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="text-red-600 hover:text-red-900"
+                      onClick={() => handleDelete(car._id)}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredCars.map((car) => (
-              <div 
-                key={car._id} 
-                className="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden"
-              >
-                <div className="aspect-video relative overflow-hidden group">
-                  <img
-                    src={car.images?.[0] || "/api/placeholder/400/300"}
-                    alt={`${car.make} ${car.model}`}
-                    className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                </div>
-                <div className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-xl font-bold text-gray-900">
-                      {car.make} {car.model}
-                    </h3>
-                    <p className="text-lg font-bold text-blue-600">
-                      ${car.pricePerDay}
-                      <span className="text-sm text-gray-500 font-normal">/day</span>
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 mb-6 text-sm text-gray-600">
-                    <span className="px-3 py-1 bg-gray-100 rounded-full">{car.year}</span>
-                    <span className="px-3 py-1 bg-gray-100 rounded-full">{car.type}</span>
-                    <span className="px-3 py-1 bg-gray-100 rounded-full">{car.transmission}</span>
-                  </div>
-                  <button
-                    onClick={() => handleOpen(car)}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
-                  >
-                    View Details
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
-      {/* Modal */}
-      {showModal && selectedCar && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={() => setShowModal(false)}></div>
-          <div className="relative min-h-screen flex items-center justify-center p-4">
-            <div className="relative bg-white rounded-2xl max-w-2xl w-full p-6 overflow-hidden">
-              <button
-                onClick={() => setShowModal(false)}
-                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-              
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                {selectedCar.make} {selectedCar.model}
-              </h2>
-              
-              <div className="space-y-6">
-                <div className="aspect-video rounded-lg overflow-hidden">
-                  <img
-                    src={selectedCar.images?.[0] || "/api/placeholder/400/300"}
-                    alt={`${selectedCar.make} ${selectedCar.model}`}
-                    className="object-cover w-full h-full"
+      {open && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 max-w-4xl w-full">
+            <h2 className="text-xl font-bold mb-4">
+              {editMode ? "Edit Car" : "Add Car"}
+            </h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Make</label>
+                <input
+                  type="text"
+                  name="make"
+                  value={carData.make}
+                  onChange={handleChange}
+                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Model</label>
+                <input
+                  type="text"
+                  name="model"
+                  value={carData.model}
+                  onChange={handleChange}
+                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Year</label>
+                <input
+                  type="number"
+                  name="year"
+                  value={carData.year}
+                  onChange={handleChange}
+                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Type</label>
+                <input
+                  type="text"
+                  name="type"
+                  value={carData.type}
+                  onChange={handleChange}
+                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Transmission</label>
+                <select
+                  name="transmission"
+                  value={carData.transmission}
+                  onChange={handleChange}
+                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select Transmission</option>
+                  <option value="Automatic">Automatic</option>
+                  <option value="Manual">Manual</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Price per Day</label>
+                <input
+                  type="number"
+                  name="pricePerDay"
+                  value={carData.pricePerDay}
+                  onChange={handleChange}
+                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+  <label className="block text-sm font-medium text-gray-700">City</label>
+  <input
+    type="text"
+    name="location.city"
+    value={carData.location.city}
+    onChange={handleChange}
+    className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+  />
+</div>
+<div>
+  <label className="block text-sm font-medium text-gray-700">Address</label>
+  <input
+    type="text"
+    name="location.address"
+    value={carData.location.address}
+    onChange={handleChange}
+    className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+  />
+</div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Latitude</label>
+                <input
+                  type="number"
+                  name="latitude"
+                  value={carData.location.coordinates.latitude}
+                  onChange={handleCoordinatesChange}
+                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Longitude</label>
+                <input
+                  type="number"
+                  name="longitude"
+                  value={carData.location.coordinates.longitude}
+                  onChange={handleCoordinatesChange}
+                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700">Features</label>
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={feature}
+                    onChange={(e) => setFeature(e.target.value)}
+                    className="flex-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Add a feature"
                   />
+                  <button
+                    onClick={handleFeatureAdd}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    Add
+                  </button>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-sm text-gray-500">Year</p>
-                      <p className="text-lg font-medium text-gray-900">{selectedCar.year}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Type</p>
-                      <p className="text-lg font-medium text-gray-900">{selectedCar.type}</p>
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-sm text-gray-500">Transmission</p>
-                      <p className="text-lg font-medium text-gray-900">{selectedCar.transmission}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Location</p>
-                      <p className="text-lg font-medium text-gray-900">
-                        {selectedCar.location?.city}, {selectedCar.location?.address}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="border-t pt-6">
-                  <div className="flex items-baseline justify-between">
-                    <p className="text-3xl font-bold text-blue-600">
-                      ${selectedCar.pricePerDay}
-                      <span className="text-base font-normal text-gray-500">/day</span>
-                    </p>
-                    <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors duration-200">
-                      Book Now
-                    </button>
-                  </div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {carData.features.map((feat, index) => (
+                    <span
+                      key={index}
+                      className="bg-blue-100 text-blue-800 px-2 py-1 rounded flex items-center"
+                    >
+                      {feat}
+                      <button
+                        onClick={() => handleFeatureRemove(index)}
+                        className="ml-2 text-blue-600 hover:text-blue-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
                 </div>
               </div>
+              <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700">Images</label>
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="mt-1 block w-full"
+              />
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {carData.images.map((image, index) => (
+                  <div key={index} className="relative group">
+                    <div className="aspect-w-16 aspect-h-9 rounded-lg overflow-hidden bg-gray-100">
+                      {image instanceof File ? (
+                        <img
+                          src={URL.createObjectURL(image)}
+                          alt={`Preview ${index + 1}`}
+                          className="object-cover w-full h-full"
+                        />
+                      ) : (
+                        <img
+                          src={image}
+                          alt={`Car image ${index + 1}`}
+                          className="object-cover w-full h-full"
+                        />
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleImageRemove(index)}
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="col-span-2">
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={carData.available}
+                  onChange={(e) => setCarData(prev => ({ ...prev, available: e.target.checked }))}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  Available for Rent
+                </span>
+              </label>
+            </div>
+
+            <div className="col-span-2 mt-6 flex justify-end space-x-2">
+              <button
+                onClick={handleClose}
+                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                {editMode ? "Update Car" : "Add Car"}
+              </button>
             </div>
           </div>
         </div>
-      )}
-    </div>
-  );
+      </div>
+    )}
+  </div>
+);
 };
 
 export default CarDetails;
