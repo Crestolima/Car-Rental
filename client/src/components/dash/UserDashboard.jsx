@@ -15,31 +15,30 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import ShowAllCars from '../../pages/ShowAllCars';
+import Wallet from '../wallet/Wallet';
 
-
-// Define menuItems array
+// Menu Items Configuration
 const menuItems = [
   { id: 'home', label: 'Home', icon: Home },
-  { id: 'documents', label: 'Documents', icon: FileText },
+  { id: 'cars', label: 'Cars', icon: FileText },
   { id: 'appointments', label: 'Appointments', icon: Calendar },
   { id: 'billing', label: 'Billing', icon: CreditCard },
   { id: 'messages', label: 'Messages', icon: MessageSquare },
-  { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'wallet', label: 'Wallet', icon: Settings },
 ];
 
-// Custom Modal Component
+// Logout Modal Component
 const LogoutModal = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Overlay */}
       <div 
         className="absolute inset-0 bg-black/50"
         onClick={onClose}
+        aria-hidden="true"
       />
-      
-      {/* Modal */}
       <div className="relative bg-white rounded-lg p-6 w-full max-w-sm mx-4 shadow-xl">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
           Sign Out
@@ -66,12 +65,99 @@ const LogoutModal = ({ isOpen, onClose, onConfirm }) => {
   );
 };
 
+// Stats Card Component
+const StatsCard = ({ icon: Icon, title, value, subtitle }) => (
+  <div className="bg-white rounded-lg shadow-sm p-6">
+    <div className="flex items-center space-x-3 mb-2">
+      <Icon className="w-5 h-5 text-indigo-600" />
+      <h3 className="font-semibold text-gray-900">{title}</h3>
+    </div>
+    <p className="text-2xl font-bold text-gray-900">{value}</p>
+    <p className="text-sm text-gray-500">{subtitle}</p>
+  </div>
+);
+
+// Activity Item Component
+const ActivityItem = ({ icon: Icon, title, description, time }) => (
+  <div className="flex items-center justify-between">
+    <div className="flex items-center space-x-3">
+      <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
+        <Icon className="w-5 h-5 text-indigo-600" />
+      </div>
+      <div>
+        <p className="font-medium text-gray-900">{title}</p>
+        <p className="text-sm text-gray-500">{description}</p>
+      </div>
+    </div>
+    <span className="text-sm text-gray-500">{time}</span>
+  </div>
+);
+
+// Home Content Component
+const HomeContent = ({ firstName }) => (
+  <>
+    <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome back, {firstName}!</h2>
+      <p className="text-gray-600">
+        Here's what's happening with your account today.
+      </p>
+    </div>
+    
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+      <StatsCard 
+        icon={Calendar}
+        title="Upcoming Appointments"
+        value="3"
+        subtitle="Next: Tomorrow at 2:00 PM"
+      />
+      
+      <StatsCard 
+        icon={MessageSquare}
+        title="Unread Messages"
+        value="5"
+        subtitle="2 new since yesterday"
+      />
+      
+      <StatsCard 
+        icon={CreditCard}
+        title="Next Payment"
+        value="$149.99"
+        subtitle="Due in 5 days"
+      />
+    </div>
+
+    <div className="bg-white rounded-lg shadow-sm p-6">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+      <div className="space-y-4">
+        <ActivityItem 
+          icon={FileText}
+          title="Document Updated"
+          description="Insurance form was updated"
+          time="2 hours ago"
+        />
+        
+        <ActivityItem 
+          icon={Calendar}
+          title="Appointment Scheduled"
+          description="New appointment for next week"
+          time="Yesterday"
+        />
+      </div>
+    </div>
+  </>
+);
+
+// Main Dashboard Component
 const UserDashboard = () => {
   const [activeItem, setActiveItem] = useState('home');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Get full name from user object
+  const fullName = user ? `${user.firstName} ${user.lastName}` : 'Guest';
+  const firstName = user?.firstName || 'Guest';
 
   const handleLogout = async () => {
     try {
@@ -84,8 +170,26 @@ const UserDashboard = () => {
     }
   };
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
+  const renderContent = () => {
+    switch (activeItem) {
+      case 'home':
+        return <HomeContent firstName={firstName} />;
+      case 'cars':
+        return <ShowAllCars />;
+      case 'wallet':
+        return <Wallet />;
+      default:
+        return (
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              {activeItem.charAt(0).toUpperCase() + activeItem.slice(1)}
+            </h2>
+            <p className="text-gray-600">
+              This section is currently under development. Please check back later for updates.
+            </p>
+          </div>
+        );
+    }
   };
 
   return (
@@ -94,8 +198,9 @@ const UserDashboard = () => {
       <header className="fixed top-0 left-0 right-0 h-16 bg-gradient-to-r from-indigo-600 to-violet-600 flex items-center justify-between px-4 md:px-8 z-30">
         <div className="flex items-center">
           <button
-            onClick={toggleSidebar}
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             className="mr-4 text-white hover:bg-white/10 p-2 rounded-lg lg:hidden"
+            aria-label="Toggle sidebar"
           >
             {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -109,23 +214,24 @@ const UserDashboard = () => {
               placeholder="Search..."
               className="w-48 lg:w-64 px-4 py-1.5 bg-transparent text-white placeholder-white/70 outline-none"
             />
-            <button className="p-2 text-white/70 hover:text-white">
+            <button className="p-2 text-white/70 hover:text-white" aria-label="Search">
               <Search className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Notification Button */}
-          <button className="relative p-2 text-white hover:bg-white/10 rounded-lg">
+          <button 
+            className="relative p-2 text-white hover:bg-white/10 rounded-lg"
+            aria-label="Notifications"
+          >
             <Bell className="w-5 h-5" />
             <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
           </button>
 
-          {/* User Menu */}
           <div className="flex items-center space-x-2 text-white">
             <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
               <User className="w-5 h-5" />
             </div>
-            <span className="hidden sm:inline">John Doe</span>
+            <span className="hidden sm:inline">{fullName}</span>
           </div>
           
           <button 
@@ -138,14 +244,12 @@ const UserDashboard = () => {
         </div>
       </header>
 
-      {/* Logout Modal */}
       <LogoutModal 
         isOpen={showLogoutModal}
         onClose={() => setShowLogoutModal(false)}
         onConfirm={handleLogout}
       />
 
-      {/* Dashboard layout */}
       <div className="flex w-full pt-16">
         {/* Sidebar */}
         <aside 
@@ -181,82 +285,15 @@ const UserDashboard = () => {
         {isSidebarOpen && (
           <div 
             className="fixed inset-0 bg-black/50 lg:hidden z-10"
-            onClick={toggleSidebar}
+            onClick={() => setIsSidebarOpen(false)}
+            aria-hidden="true"
           />
         )}
 
         {/* Main Content */}
         <main className="flex-1 overflow-x-hidden overflow-y-auto">
           <div className="p-6">
-            {/* Welcome Card */}
-            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome back, John!</h2>
-              <p className="text-gray-600">
-                Here's what's happening with your account today.
-              </p>
-            </div>
-            
-            {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <div className="flex items-center space-x-3 mb-2">
-                  <Calendar className="w-5 h-5 text-indigo-600" />
-                  <h3 className="font-semibold text-gray-900">Upcoming Appointments</h3>
-                </div>
-                <p className="text-2xl font-bold text-gray-900">3</p>
-                <p className="text-sm text-gray-500">Next: Tomorrow at 2:00 PM</p>
-              </div>
-              
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <div className="flex items-center space-x-3 mb-2">
-                  <MessageSquare className="w-5 h-5 text-indigo-600" />
-                  <h3 className="font-semibold text-gray-900">Unread Messages</h3>
-                </div>
-                <p className="text-2xl font-bold text-gray-900">5</p>
-                <p className="text-sm text-gray-500">2 new since yesterday</p>
-              </div>
-              
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <div className="flex items-center space-x-3 mb-2">
-                  <CreditCard className="w-5 h-5 text-indigo-600" />
-                  <h3 className="font-semibold text-gray-900">Next Payment</h3>
-                </div>
-                <p className="text-2xl font-bold text-gray-900">$149.99</p>
-                <p className="text-sm text-gray-500">Due in 5 days</p>
-              </div>
-            </div>
-
-            {/* Recent Activity */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-indigo-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">Document Updated</p>
-                      <p className="text-sm text-gray-500">Insurance form was updated</p>
-                    </div>
-                  </div>
-                  <span className="text-sm text-gray-500">2 hours ago</span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                      <Calendar className="w-5 h-5 text-indigo-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">Appointment Scheduled</p>
-                      <p className="text-sm text-gray-500">New appointment for next week</p>
-                    </div>
-                  </div>
-                  <span className="text-sm text-gray-500">Yesterday</span>
-                </div>
-              </div>
-            </div>
+            {renderContent()}
           </div>
         </main>
       </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import CarCard from '../components/cars/CarCard';
+import LoginPromptModal from './LoginPromptModal';
 import api from '../services/api';
 import { Search, CarFront, Filter } from 'lucide-react';
 
@@ -9,6 +10,7 @@ const Home = () => {
   const [cars, setCars] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,6 +39,10 @@ const Home = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCarSelect = () => {
+    setShowLoginPrompt(true);
   };
 
   // Variants for animations
@@ -212,7 +218,7 @@ const Home = () => {
                 >
                   <CarCard
                     car={car}
-                    onSelect={() => navigate(`/cars/${car._id}`)}
+                    onSelect={handleCarSelect}
                   />
                 </motion.div>
               ))}
@@ -298,6 +304,12 @@ const Home = () => {
           </motion.div>
         </div>
       </motion.div>
+
+      {/* Login Prompt Modal */}
+      <LoginPromptModal 
+        isOpen={showLoginPrompt} 
+        onClose={() => setShowLoginPrompt(false)} 
+      />
     </motion.div>
   );
 };

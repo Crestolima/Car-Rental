@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import BookingForm from '../components/bookings/BookingForm';
-import Loading from '../components/common/Loading';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import BookingForm from '../components/bookings/BookingPage';
 import Error from '../components/common/Error';
+import Loading from '../components/common/Loading';
+import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import { validateDates, calculateTotalPrice } from '../utils/helpers';
+import { calculateTotalPrice, validateDates } from '../utils/helpers';
 
 const Booking = () => {
   const { id } = useParams();

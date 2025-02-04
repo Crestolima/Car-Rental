@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   BarChart,
-  
   Car,
   Calendar,
   DollarSign,
@@ -11,23 +10,38 @@ import {
   LogOut,
   Search,
   Menu,
-  X
+  X,
+  Users as UsersIcon
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import CarDetails from '../../pages/CarDetails';
 import Users from '../../pages/Users';
-import { Users as UsersIcon } from 'lucide-react';
+import Wallet from '../wallet/Wallet';
 
-
+// Menu Items Configuration
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: BarChart },
   { id: 'users', label: 'Users', icon: UsersIcon },
   { id: 'cars', label: 'Cars', icon: Car },
   { id: 'bookings', label: 'Bookings', icon: Calendar },
   { id: 'payments', label: 'Payments', icon: DollarSign },
-  { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'wallet', label: 'Wallets', icon: Settings },
 ];
 
+// Stats Card Component
+const StatsCard = ({ title, value, description }) => (
+  <div className="bg-white rounded-lg shadow-sm p-6">
+    <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <span className="text-gray-600">{description}</span>
+        <span className="font-semibold text-gray-900">{value}</span>
+      </div>
+    </div>
+  </div>
+);
+
+// Logout Modal Component
 const LogoutModal = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
 
@@ -37,7 +51,6 @@ const LogoutModal = ({ isOpen, onClose, onConfirm }) => {
         className="absolute inset-0 bg-black/50"
         onClick={onClose}
       />
-      
       <div className="relative bg-white rounded-lg p-6 w-full max-w-sm mx-4 shadow-xl">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
           Confirm Logout
@@ -64,12 +77,13 @@ const LogoutModal = ({ isOpen, onClose, onConfirm }) => {
   );
 };
 
-const DashboardContent = () => (
+// Dashboard Content Component
+const DashboardContent = ({ firstName }) => (
   <>
     <div className="bg-white rounded-lg shadow-sm p-6">
-      <h2 className="text-2xl font-bold text-gray-900 mb-4">Dashboard Overview</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-4">Welcome back, {firstName}!</h2>
       <p className="text-gray-600">
-        Welcome to the dashboard. Select an item from the sidebar to view different sections.
+        Here's your admin dashboard overview. Select an item from the sidebar to view different sections.
       </p>
     </div>
 
@@ -131,12 +145,17 @@ const DashboardContent = () => (
   </>
 );
 
+// Main AdminDashboard Component
 const AdminDashboard = () => {
   const [activeItem, setActiveItem] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Get full name and first name from user object
+  const fullName = user ? `${user.firstName} ${user.lastName}` : 'Admin';
+  const firstName = user?.firstName || 'Admin';
 
   const handleLogout = async () => {
     try {
@@ -158,9 +177,11 @@ const AdminDashboard = () => {
       case 'cars':
         return <CarDetails />;
       case 'users':
-          return <Users />;  
+        return <Users />;
+      case 'wallet':
+        return <Wallet />;  
       case 'dashboard':
-        return <DashboardContent />;
+        return <DashboardContent firstName={firstName} />;
       default:
         return (
           <div className="bg-white rounded-lg shadow-sm p-6">
@@ -177,11 +198,13 @@ const AdminDashboard = () => {
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
+      {/* Header */}
       <header className="fixed top-0 left-0 right-0 h-16 bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-between px-4 md:px-8 z-30">
         <div className="flex items-center">
           <button
             onClick={toggleSidebar}
             className="mr-4 text-white hover:bg-white/10 p-2 rounded-lg lg:hidden"
+            aria-label="Toggle sidebar"
           >
             {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -195,15 +218,18 @@ const AdminDashboard = () => {
               placeholder="Search..."
               className="w-48 lg:w-64 px-4 py-1.5 bg-transparent text-white placeholder-white/70 outline-none"
             />
-            <button className="p-2 text-white/70 hover:text-white">
+            <button className="p-2 text-white/70 hover:text-white" aria-label="Search">
               <Search className="w-4 h-4" />
             </button>
           </div>
 
           <div className="flex items-center space-x-2 text-white">
-            <User className="w-5 h-5" />
-            <span className="hidden sm:inline">Admin</span>
+            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+              <User className="w-5 h-5" />
+            </div>
+            <span className="hidden sm:inline">{fullName}</span>
           </div>
+          
           <button 
             onClick={() => setShowLogoutModal(true)}
             className="flex items-center space-x-2 text-white hover:opacity-80"
@@ -221,6 +247,7 @@ const AdminDashboard = () => {
       />
 
       <div className="flex w-full pt-16">
+        {/* Sidebar */}
         <aside 
           className={`fixed lg:static top-16 bottom-0 w-64 bg-white border-r border-gray-100 transform transition-transform duration-300 ease-in-out z-20 
             ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
@@ -250,13 +277,16 @@ const AdminDashboard = () => {
           </nav>
         </aside>
 
+        {/* Mobile Overlay */}
         {isSidebarOpen && (
           <div 
             className="fixed inset-0 bg-black/50 lg:hidden z-10"
             onClick={toggleSidebar}
+            aria-hidden="true"
           />
         )}
 
+        {/* Main Content */}
         <main className="flex-1 overflow-x-hidden overflow-y-auto">
           <div className="p-6">
             {renderContent()}

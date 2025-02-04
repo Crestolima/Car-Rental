@@ -11,7 +11,7 @@ const createCar = async (req, res, next) => {
     }
 
     // Process uploaded files
-    const imageUrls = req.files.map(file => `/uploads/cars/${file.filename}`);
+    const imageUrls = req.files.map(file => `/uploads/${file.filename}`);
 
     let carData = {
       make: req.body.make,
@@ -66,7 +66,7 @@ const createCar = async (req, res, next) => {
         );
       }
     }
-    next(error); // Pass to error handler
+    next(error);
   }
 };
 
@@ -83,14 +83,14 @@ const updateCar = async (req, res, next) => {
     if (req.files && req.files.length > 0) {
       // Delete old images
       for (const imagePath of car.images) {
-        const fullPath = path.join(__dirname, '..', 'public', imagePath);
+        const fullPath = path.join(__dirname, '..', imagePath);
         await fs.unlink(fullPath).catch(err => 
           console.error('Error deleting old image:', err)
         );
       }
 
       // Add new image paths
-      req.body.images = req.files.map(file => `/uploads/cars/${file.filename}`);
+      req.body.images = req.files.map(file => `/uploads/${file.filename}`);
     }
 
     // Parse JSON fields
@@ -126,7 +126,7 @@ const updateCar = async (req, res, next) => {
         );
       }
     }
-    next(error); // Pass to error handler
+    next(error);
   }
 };
 
@@ -141,7 +141,7 @@ const deleteCar = async (req, res, next) => {
 
     // Delete associated images
     for (const imagePath of car.images) {
-      const fullPath = path.join(__dirname, '..', 'public', imagePath);
+      const fullPath = path.join(__dirname, '..', imagePath);
       await fs.unlink(fullPath).catch(err => 
         console.error('Error deleting image:', err)
       );
@@ -150,7 +150,7 @@ const deleteCar = async (req, res, next) => {
     await car.remove();
     res.json({ message: 'Car removed' });
   } catch (error) {
-    next(error); // Pass to error handler
+    next(error);
   }
 };
 
@@ -159,7 +159,7 @@ const getCars = async (req, res, next) => {
     const cars = await Car.find({});
     res.json(cars);
   } catch (error) {
-    next(error); // Pass to error handler
+    next(error);
   }
 };
 
@@ -174,7 +174,7 @@ const getCarById = async (req, res, next) => {
       throw error;
     }
   } catch (error) {
-    next(error); // Pass to error handler
+    next(error);
   }
 };
 
