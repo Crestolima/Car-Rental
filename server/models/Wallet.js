@@ -30,3 +30,8 @@ const walletSchema = new mongoose.Schema({
     }
   ]
 });
+
+// Create the Wallet model *after* defining the schema
+const Wallet = mongoose.model('Wallet', walletSchema); // 'Wallet' is the collection name
+
+module.exports = Wallet;

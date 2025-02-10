@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import CarList from '../components/cars/CarList';
 import Loading from '../components/common/Loading';
@@ -9,7 +9,7 @@ const Search = () => {
   const [cars, setCars] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
-    make: searchParams.get('make') || '',
+    name: searchParams.get('name') || '',
     model: searchParams.get('model') || '',
     type: searchParams.get('type') || '',
     minPrice: searchParams.get('minPrice') || '',
@@ -50,9 +50,9 @@ const Search = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <input
             type="text"
-            name="make"
-            placeholder="Make"
-            value={filters.make}
+            name="name"
+            placeholder="name"
+            value={filters.name}
             onChange={handleFilterChange}
             className="rounded border-gray-300"
           />

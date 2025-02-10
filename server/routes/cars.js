@@ -1,22 +1,15 @@
 const express = require('express');
-const router = express.Router();
 const { protect, admin } = require('../middleware/auth');
 const upload = require('../config/multerConfig');
-const {
-  getCars,
-  getCarById,
-  createCar,
-  updateCar,
-  deleteCar
-} = require('../controllers/carController');
+const { createCar, getCars, getCarById, updateCar, deleteCar } = require('../controllers/carController');
 
-router.route('/')
-  .get(getCars)
-  .post(protect, admin, upload.array('images', 5), createCar);
+const router = express.Router();
 
-router.route('/:id')
-  .get(getCarById)
-  .put(protect, admin, upload.array('images', 5), updateCar)
-  .delete(protect, admin, deleteCar);
+router.get('/', getCars); // ✅ Works for everyone
+router.get('/:carId', protect, getCarById); // ✅ Authenticated users can view a specific car
+
+router.post('/', protect, admin, upload.array('images', 5), createCar); // 🔐 Admin only
+router.put('/:carId', protect, admin, upload.array('images', 5), updateCar); // 🔐 Admin only
+router.delete('/:carId', protect, admin, deleteCar); // 🔐 Admin only
 
 module.exports = router;

@@ -78,7 +78,7 @@ const Footer = () => {
             <ul className="space-y-2">
               {[
                 { type: "Email", value: "info@carrental.com", href: "mailto:info@carrental.com" },
-                { type: "Phone", value: "(555) 123-4567", href: "tel:5551234567" },
+                { type: "Phone", value: "(555) 123-4567", href: "tel:913645" },
                 { type: "Address", value: "123 Car Street, Auto City" }
               ].map((contact) => (
                 <motion.li 

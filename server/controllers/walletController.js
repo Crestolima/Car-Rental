@@ -29,7 +29,7 @@ const addFunds = async (req, res, next) => {
   }
 };
 
-const makePayment = async (req, res, next) => {
+const namePayment = async (req, res, next) => {
   try {
     const { userId, amount, description } = req.body;
 
@@ -78,4 +78,4 @@ const getWallet = async (req, res, next) => {
   }
 };
 
-module.exports = { addFunds, makePayment ,getWallet};
+module.exports = { addFunds, namePayment ,getWallet};

@@ -5,12 +5,9 @@ const path = require('path');
 const createCar = async (req, res, next) => {
   try {
     if (!req.files || req.files.length === 0) {
-      const error = new Error('No images provided');
-      error.statusCode = 400;
-      throw error;
+      return next({ message: 'No images provided', statusCode: 400 });
     }
 
-    // Process uploaded files
     const imageUrls = req.files.map(file => `/uploads/${file.filename}`);
 
     let carData = {
@@ -26,45 +23,23 @@ const createCar = async (req, res, next) => {
       location: {
         city: '',
         address: '',
-        coordinates: {
-          latitude: 0,
-          longitude: 0
-        }
-      }
+        coordinates: { latitude: 0, longitude: 0 },
+      },
     };
 
-    // Parse features
-    if (req.body.features) {
-      try {
-        carData.features = JSON.parse(req.body.features);
-      } catch (e) {
-        const error = new Error('Invalid features data');
-        error.statusCode = 400;
-        throw error;
-      }
-    }
-
-    // Parse location
-    if (req.body.location) {
-      try {
-        carData.location = JSON.parse(req.body.location);
-      } catch (e) {
-        const error = new Error('Invalid location data');
-        error.statusCode = 400;
-        throw error;
-      }
+    // Parse JSON fields safely
+    try {
+      if (req.body.features) carData.features = JSON.parse(req.body.features);
+      if (req.body.location) carData.location = JSON.parse(req.body.location);
+    } catch (error) {
+      return next({ message: 'Invalid JSON format', statusCode: 400 });
     }
 
     const car = await Car.create(carData);
     res.status(201).json(car);
   } catch (error) {
-    // Clean up uploaded files if there's an error
     if (req.files) {
-      for (const file of req.files) {
-        await fs.unlink(file.path).catch(err => 
-          console.error('Error deleting file:', err)
-        );
-      }
+      await Promise.all(req.files.map(file => fs.unlink(file.path).catch(console.error)));
     }
     next(error);
   }
@@ -73,58 +48,32 @@ const createCar = async (req, res, next) => {
 const updateCar = async (req, res, next) => {
   try {
     const car = await Car.findById(req.params.id);
-    if (!car) {
-      const error = new Error('Car not found');
-      error.statusCode = 404;
-      throw error;
-    }
+    if (!car) return next({ message: 'Car not found', statusCode: 404 });
 
-    // Handle new image uploads
     if (req.files && req.files.length > 0) {
       // Delete old images
-      for (const imagePath of car.images) {
-        const fullPath = path.join(__dirname, '..', imagePath);
-        await fs.unlink(fullPath).catch(err => 
-          console.error('Error deleting old image:', err)
-        );
-      }
-
-      // Add new image paths
+      await Promise.all(
+        car.images.map(imagePath =>
+          fs.unlink(path.join(__dirname, '..', imagePath)).catch(console.error)
+        )
+      );
       req.body.images = req.files.map(file => `/uploads/${file.filename}`);
     }
 
-    // Parse JSON fields
-    if (req.body.features) {
-      try {
-        req.body.features = JSON.parse(req.body.features);
-      } catch (e) {
-        const error = new Error('Invalid features data');
-        error.statusCode = 400;
-        throw error;
-      }
-    }
-
-    if (req.body.location) {
-      try {
-        req.body.location = JSON.parse(req.body.location);
-      } catch (e) {
-        const error = new Error('Invalid location data');
-        error.statusCode = 400;
-        throw error;
-      }
+    // Parse JSON fields safely
+    try {
+      if (req.body.features) req.body.features = JSON.parse(req.body.features);
+      if (req.body.location) req.body.location = JSON.parse(req.body.location);
+    } catch (error) {
+      return next({ message: 'Invalid JSON format', statusCode: 400 });
     }
 
     Object.assign(car, req.body);
     const updatedCar = await car.save();
     res.json(updatedCar);
   } catch (error) {
-    // Clean up new uploaded files if there's an error
     if (req.files) {
-      for (const file of req.files) {
-        await fs.unlink(file.path).catch(err => 
-          console.error('Error deleting file:', err)
-        );
-      }
+      await Promise.all(req.files.map(file => fs.unlink(file.path).catch(console.error)));
     }
     next(error);
   }
@@ -133,21 +82,15 @@ const updateCar = async (req, res, next) => {
 const deleteCar = async (req, res, next) => {
   try {
     const car = await Car.findById(req.params.id);
-    if (!car) {
-      const error = new Error('Car not found');
-      error.statusCode = 404;
-      throw error;
-    }
+    if (!car) return next({ message: 'Car not found', statusCode: 404 });
 
-    // Delete associated images
-    for (const imagePath of car.images) {
-      const fullPath = path.join(__dirname, '..', imagePath);
-      await fs.unlink(fullPath).catch(err => 
-        console.error('Error deleting image:', err)
-      );
-    }
+    await Promise.all(
+      car.images.map(imagePath =>
+        fs.unlink(path.join(__dirname, '..', imagePath)).catch(console.error)
+      )
+    );
 
-    await car.remove();
+    await car.deleteOne();
     res.json({ message: 'Car removed' });
   } catch (error) {
     next(error);
@@ -156,7 +99,7 @@ const deleteCar = async (req, res, next) => {
 
 const getCars = async (req, res, next) => {
   try {
-    const cars = await Car.find({});
+    const cars = await Car.find({}).lean();
     res.json(cars);
   } catch (error) {
     next(error);
@@ -165,23 +108,20 @@ const getCars = async (req, res, next) => {
 
 const getCarById = async (req, res, next) => {
   try {
-    const car = await Car.findById(req.params.id);
-    if (car) {
-      res.json(car);
-    } else {
-      const error = new Error('Car not found');
-      error.statusCode = 404;
-      throw error;
-    }
+    const { carId } = req.params; // Fix: Use carId instead of id
+
+    console.log("Fetching car with ID:", carId); // Debugging
+
+    const car = await Car.findById(carId).lean();
+
+    if (!car) return next({ message: "Car not found", statusCode: 404 });
+
+    res.json(car);
   } catch (error) {
+    console.error("Error fetching car details:", error);
     next(error);
   }
 };
 
-module.exports = {
-  getCars,
-  getCarById,
-  createCar,
-  updateCar,
-  deleteCar
-};
+
+module.exports = { getCars, getCarById, createCar, updateCar, deleteCar };

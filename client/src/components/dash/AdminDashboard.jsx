@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   BarChart,
@@ -11,16 +11,24 @@ import {
   Search,
   Menu,
   X,
-  Users as UsersIcon
+  ChevronRight,
+  Users as UsersIcon,
+  Home
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import CarDetails from '../../pages/CarDetails';
 import Users from '../../pages/Users';
 import Wallet from '../wallet/Wallet';
 
-// Menu Items Configuration
+const SCREEN_SIZES = {
+  sm: 640,
+  md: 768,
+  lg: 1024,
+  xl: 1280,
+};
+
 const menuItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: BarChart },
+  { id: 'dashboard', label: 'Dashboard', icon: Home },
   { id: 'users', label: 'Users', icon: UsersIcon },
   { id: 'cars', label: 'Cars', icon: Car },
   { id: 'bookings', label: 'Bookings', icon: Calendar },
@@ -28,33 +36,42 @@ const menuItems = [
   { id: 'wallet', label: 'Wallets', icon: Settings },
 ];
 
-// Stats Card Component
-const StatsCard = ({ title, value, description }) => (
-  <div className="bg-white rounded-lg shadow-sm p-6">
-    <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <span className="text-gray-600">{description}</span>
-        <span className="font-semibold text-gray-900">{value}</span>
-      </div>
-    </div>
-  </div>
-);
+const SidebarItem = ({ item, isActive, isCollapsed, onClick }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const Icon = item.icon;
 
-// Logout Modal Component
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className={`
+        w-full flex items-center px-4 py-3 my-1 rounded-lg transition-all duration-200
+        ${isActive ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}
+        ${isCollapsed ? 'justify-center' : 'justify-start'}
+      `}
+    >
+      <Icon className={`w-5 h-5 ${isActive ? 'text-blue-600' : 'text-gray-600'}`} />
+      {!isCollapsed && (
+        <span className="ml-3 font-medium whitespace-nowrap">{item.label}</span>
+      )}
+      {isCollapsed && isHovered && (
+        <div className="absolute left-16 bg-white px-4 py-2 rounded-lg shadow-lg z-50 whitespace-nowrap">
+          {item.label}
+        </div>
+      )}
+    </button>
+  );
+};
+
 const LogoutModal = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div 
-        className="absolute inset-0 bg-black/50"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white rounded-lg p-6 w-full max-w-sm mx-4 shadow-xl">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Confirm Logout
-        </h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Confirm Logout</h3>
         <p className="text-gray-600 mb-6">
           Are you sure you want to logout? You will need to login again to access your account.
         </p>
@@ -77,9 +94,33 @@ const LogoutModal = ({ isOpen, onClose, onConfirm }) => {
   );
 };
 
-// Dashboard Content Component
+const StatsCard = ({ title, items }) => (
+  <div className="bg-white rounded-lg shadow-sm p-6">
+    <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
+    <div className="space-y-4">
+      {items.map((item, index) => (
+        <div key={index} className="flex items-center justify-between">
+          {item.status ? (
+            <div className="flex items-center space-x-3">
+              <div className={`w-2 h-2 bg-${item.status}-500 rounded-full`} />
+              <span className="text-gray-600">{item.label}</span>
+            </div>
+          ) : (
+            <>
+              <span className="text-gray-600">{item.label}</span>
+              <span className={item.valueColor || 'text-gray-900 font-semibold'}>
+                {item.value}
+              </span>
+            </>
+          )}
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 const DashboardContent = ({ firstName }) => (
-  <>
+  <div className="space-y-6">
     <div className="bg-white rounded-lg shadow-sm p-6">
       <h2 className="text-2xl font-bold text-gray-900 mb-4">Welcome back, {firstName}!</h2>
       <p className="text-gray-600">
@@ -87,75 +128,119 @@ const DashboardContent = ({ firstName }) => (
       </p>
     </div>
 
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Stats</h3>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">Total Users</span>
-            <span className="font-semibold text-gray-900">1,234</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">Active Sessions</span>
-            <span className="font-semibold text-gray-900">56</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">Today's Revenue</span>
-            <span className="font-semibold text-gray-900">$1,234</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
-        <div className="space-y-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span className="text-gray-600">New user registration</span>
-          </div>
-          <div className="flex items-center space-x-3">
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-            <span className="text-gray-600">Payment received</span>
-          </div>
-          <div className="flex items-center space-x-3">
-            <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-            <span className="text-gray-600">System update completed</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">System Status</h3>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">Server Status</span>
-            <span className="text-green-500 font-medium">Online</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">Last Backup</span>
-            <span className="text-gray-900">2 hours ago</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">System Load</span>
-            <span className="text-gray-900">42%</span>
-          </div>
-        </div>
-      </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <StatsCard
+        title="Quick Stats"
+        items={[
+          { label: 'Total Users', value: '1,234' },
+          { label: 'Active Sessions', value: '56' },
+          { label: 'Today\'s Revenue', value: '$1,234' }
+        ]}
+      />
+      <StatsCard
+        title="Recent Activity"
+        items={[
+          { label: 'New user registration', status: 'green' },
+          { label: 'Payment received', status: 'blue' },
+          { label: 'System update completed', status: 'yellow' }
+        ]}
+      />
+      <StatsCard
+        title="System Status"
+        items={[
+          { label: 'Server Status', value: 'Online', valueColor: 'text-green-500' },
+          { label: 'Last Backup', value: '2 hours ago' },
+          { label: 'System Load', value: '42%' }
+        ]}
+      />
     </div>
-  </>
+  </div>
 );
 
-// Main AdminDashboard Component
+const Header = ({ toggleSidebar, isSidebarOpen, isSidebarCollapsed, isMobile, fullName, setShowLogoutModal }) => (
+  <header className="fixed top-0 left-0 right-0 h-16 bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-between px-4 md:px-8 z-30">
+    <div className="flex items-center">
+      <button
+        onClick={toggleSidebar}
+        className="mr-4 text-white hover:bg-white/10 p-2 rounded-lg transition-colors"
+        aria-label={isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+      >
+        {isMobile ? (
+          isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />
+        ) : (
+          <ChevronRight className={`w-5 h-5 transform transition-transform ${
+            !isSidebarCollapsed ? 'rotate-180' : ''
+          }`} />
+        )}
+      </button>
+      <h1 className="text-xl font-bold text-white">Admin Dashboard</h1>
+    </div>
+    
+    <div className="flex items-center space-x-4">
+      <div className="hidden md:flex items-center bg-white/10 rounded-lg">
+        <input
+          type="text"
+          placeholder="Search..."
+          className="w-48 lg:w-64 px-4 py-1.5 bg-transparent text-white placeholder-white/70 outline-none"
+        />
+        <button className="p-2 text-white/70 hover:text-white" aria-label="Search">
+          <Search className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="flex items-center space-x-2 text-white">
+        <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+          <User className="w-5 h-5" />
+        </div>
+        <span className="hidden sm:inline">{fullName}</span>
+      </div>
+      
+      <button 
+        onClick={() => setShowLogoutModal(true)}
+        className="flex items-center space-x-2 text-white hover:opacity-80"
+      >
+        <LogOut className="w-5 h-5" />
+        <span className="hidden sm:inline">Logout</span>
+      </button>
+    </div>
+  </header>
+);
+
 const AdminDashboard = () => {
   const [activeItem, setActiveItem] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < SCREEN_SIZES.lg);
+  const [screenSize, setScreenSize] = useState(window.innerWidth);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Get full name and first name from user object
   const fullName = user ? `${user.firstName} ${user.lastName}` : 'Admin';
   const firstName = user?.firstName || 'Admin';
+
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      setScreenSize(width);
+      setIsMobile(width < SCREEN_SIZES.lg);
+      
+      // Auto collapse sidebar based on screen size
+      if (width < SCREEN_SIZES.xl && width >= SCREEN_SIZES.lg) {
+        setIsSidebarCollapsed(true);
+        setIsSidebarOpen(true);
+      } else if (width >= SCREEN_SIZES.xl) {
+        setIsSidebarCollapsed(false);
+        setIsSidebarOpen(true);
+      } else if (width < SCREEN_SIZES.lg) {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -169,7 +254,18 @@ const AdminDashboard = () => {
   };
 
   const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
+    if (isMobile) {
+      setIsSidebarOpen(!isSidebarOpen);
+    } else {
+      setIsSidebarCollapsed(!isSidebarCollapsed);
+    }
+  };
+
+  const handleSidebarItemClick = (itemId) => {
+    setActiveItem(itemId);
+    if (screenSize < SCREEN_SIZES.lg) {
+      setIsSidebarOpen(false);
+    }
   };
 
   const renderContent = () => {
@@ -179,7 +275,7 @@ const AdminDashboard = () => {
       case 'users':
         return <Users />;
       case 'wallet':
-        return <Wallet />;  
+        return <Wallet />;
       case 'dashboard':
         return <DashboardContent firstName={firstName} />;
       default:
@@ -198,47 +294,14 @@ const AdminDashboard = () => {
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 h-16 bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-between px-4 md:px-8 z-30">
-        <div className="flex items-center">
-          <button
-            onClick={toggleSidebar}
-            className="mr-4 text-white hover:bg-white/10 p-2 rounded-lg lg:hidden"
-            aria-label="Toggle sidebar"
-          >
-            {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-          <h1 className="text-xl font-bold text-white">Admin Dashboard</h1>
-        </div>
-        
-        <div className="flex items-center space-x-4">
-          <div className="hidden md:flex items-center bg-white/10 rounded-lg">
-            <input
-              type="text"
-              placeholder="Search..."
-              className="w-48 lg:w-64 px-4 py-1.5 bg-transparent text-white placeholder-white/70 outline-none"
-            />
-            <button className="p-2 text-white/70 hover:text-white" aria-label="Search">
-              <Search className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="flex items-center space-x-2 text-white">
-            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-              <User className="w-5 h-5" />
-            </div>
-            <span className="hidden sm:inline">{fullName}</span>
-          </div>
-          
-          <button 
-            onClick={() => setShowLogoutModal(true)}
-            className="flex items-center space-x-2 text-white hover:opacity-80"
-          >
-            <LogOut className="w-5 h-5" />
-            <span className="hidden sm:inline">Logout</span>
-          </button>
-        </div>
-      </header>
+      <Header 
+        toggleSidebar={toggleSidebar}
+        isSidebarOpen={isSidebarOpen}
+        isSidebarCollapsed={isSidebarCollapsed}
+        isMobile={isMobile}
+        fullName={fullName}
+        setShowLogoutModal={setShowLogoutModal}
+      />
 
       <LogoutModal 
         isOpen={showLogoutModal}
@@ -249,45 +312,39 @@ const AdminDashboard = () => {
       <div className="flex w-full pt-16">
         {/* Sidebar */}
         <aside 
-          className={`fixed lg:static top-16 bottom-0 w-64 bg-white border-r border-gray-100 transform transition-transform duration-300 ease-in-out z-20 
-            ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
+          className={`fixed lg:static top-16 bottom-0 bg-white border-r border-gray-100 
+            transform transition-all duration-300 ease-in-out z-20 
+            ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
+            ${isSidebarCollapsed ? 'w-20' : 'w-64'} 
+            lg:translate-x-0`}
         >
-          <nav className="h-full overflow-y-auto">
+          <nav className="h-full overflow-y-auto p-4">
             {menuItems.map((item) => (
-              <button
+              <SidebarItem
                 key={item.id}
-                onClick={() => {
-                  setActiveItem(item.id);
-                  if (window.innerWidth < 1024) setIsSidebarOpen(false);
-                }}
-                className={`w-full flex items-center px-6 py-3 transition-all duration-200 ${
-                  activeItem === item.id
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center space-x-3">
-                  <item.icon className={`w-5 h-5 ${
-                    activeItem === item.id ? 'text-blue-600' : 'text-gray-600'
-                  }`} />
-                  <span className="font-medium">{item.label}</span>
-                </div>
-              </button>
+                item={item}
+                isActive={activeItem === item.id}
+                isCollapsed={isSidebarCollapsed}
+                onClick={() => handleSidebarItemClick(item.id)}
+              />
             ))}
           </nav>
         </aside>
 
         {/* Mobile Overlay */}
-        {isSidebarOpen && (
+        {isSidebarOpen && isMobile && (
           <div 
             className="fixed inset-0 bg-black/50 lg:hidden z-10"
-            onClick={toggleSidebar}
+            onClick={() => setIsSidebarOpen(false)}
             aria-hidden="true"
           />
         )}
 
         {/* Main Content */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto">
+        <main 
+          className={`flex-1 overflow-x-hidden overflow-y-auto transition-all duration-300 
+            ${isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-0'}`}
+        >
           <div className="p-6">
             {renderContent()}
           </div>

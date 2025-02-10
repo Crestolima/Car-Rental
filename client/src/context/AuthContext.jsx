@@ -1,16 +1,27 @@
-import { createContext, useState, useContext } from 'react';
+import { createContext, useState, useContext, useEffect } from 'react';
 import api from '../services/api';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')));
-  const [walletBalance, setWalletBalance] = useState(0);
+  const storedUser = JSON.parse(localStorage.getItem('user')) || null;
+  const storedWallet = JSON.parse(localStorage.getItem('walletBalance')) || 0;
+
+  const [user, setUser] = useState(storedUser);
+  const [walletBalance, setWalletBalance] = useState(storedWallet);
+
+  useEffect(() => {
+    if (user?._id) {
+      fetchWalletBalance(user._id);
+    }
+  }, [user]);
 
   const login = (userData) => {
+    if (!userData?._id) return;
+
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
-    // Fetch initial wallet balance after login
+    
     fetchWalletBalance(userData._id);
   };
 
@@ -18,13 +29,17 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setWalletBalance(0);
     localStorage.removeItem('user');
+    localStorage.removeItem('walletBalance');
   };
 
   const fetchWalletBalance = async (userId) => {
     try {
       const response = await api.get(`/wallet/${userId}`);
-      setWalletBalance(response.data.balance);
-      return response.data.balance;
+      const balance = response.data.balance || 0;
+      
+      setWalletBalance(balance);
+      localStorage.setItem('walletBalance', JSON.stringify(balance));
+      return balance;
     } catch (error) {
       console.error('Error fetching wallet balance:', error);
       return 0;
@@ -35,8 +50,8 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider value={{ 
       user, 
       login, 
-      logout,
-      walletBalance,
+      logout, 
+      walletBalance, 
       fetchWalletBalance 
     }}>
       {children}

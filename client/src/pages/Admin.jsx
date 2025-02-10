@@ -1,5 +1,5 @@
 // src/pages/Admin.js
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
@@ -79,7 +79,7 @@ const Admin = () => {
               {cars.map((car) => (
                 <tr key={car._id}>
                   <td className="px-6 py-4">
-                    {car.make} {car.model} ({car.year})
+                    {car.name} {car.model} ({car.year})
                   </td>
                   <td className="px-6 py-4">{car.type}</td>
                   <td className="px-6 py-4">${car.pricePerDay}</td>
@@ -134,7 +134,7 @@ const Admin = () => {
                     {booking.customerName}
                   </td>
                   <td className="px-6 py-4">
-                    {booking.car.make} {booking.car.model}
+                    {booking.car.name} {booking.car.model}
                   </td>
                   <td className="px-6 py-4">
                     {booking.startDate} - {booking.endDate}

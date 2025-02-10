@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { CarFront, Filter, Search } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import CarCard from '../components/cars/CarCard';
-import LoginPromptModal from './LoginPromptModal';
 import api from '../services/api';
-import { Search, CarFront, Filter } from 'lucide-react';
+import LoginPromptModal from './LoginPromptModal';
 
 const Home = () => {
   const [cars, setCars] = useState([]);
@@ -127,7 +127,7 @@ const Home = () => {
               <div className="flex-1 px-4">
                 <input
                   type="text"
-                  placeholder="Search by make, model, or type..."
+                  placeholder="Search by name, model, or type..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full py-2 outline-none text-gray-700"

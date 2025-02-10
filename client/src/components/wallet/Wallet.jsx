@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Wallet as WalletIcon, CreditCard, Calendar, KeyRound } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
@@ -11,33 +11,49 @@ const Wallet = () => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [localWalletBalance, setLocalWalletBalance] = useState(0);
 
   const { user, walletBalance, fetchWalletBalance } = useAuth();
 
-  useEffect(() => {
-    if (user?._id) {
-      fetchTransactions();
-    }
-  }, [user]);
-
-  const fetchTransactions = async () => {
+  // Create a memoized fetch function to prevent unnecessary rerenders
+  const fetchWalletData = useCallback(async () => {
+    if (!user?._id) return;
+    
     try {
-      if (!user?._id) return;
-      
+      setLoading(true);
       const response = await api.get(`/wallet/${user._id}`);
+      
       if (response.data) {
         setTransactions(response.data.transactions || []);
+        setLocalWalletBalance(response.data.balance);
+        // Update the global wallet balance
+        fetchWalletBalance(user._id);
       }
-    } catch (error) {
-      console.error('Error fetching wallet:', error);
+    } catch (err) {
+      console.error('Error fetching wallet:', err);
       setError('Error fetching wallet details');
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?._id, fetchWalletBalance]);
+
+  // Set up polling to keep wallet data fresh
+  useEffect(() => {
+    if (!user?._id) return;
+
+    // Initial fetch
+    fetchWalletData();
+
+    // Set up polling every 30 seconds
+    const pollInterval = setInterval(fetchWalletData, 30000);
+
+    return () => clearInterval(pollInterval);
+  }, [user?._id, fetchWalletData]);
 
   const handleAddFunds = async (e) => {
     e.preventDefault();
+    setError(null);
+
     try {
       const response = await api.post('/wallet/add-funds', {
         userId: user._id,
@@ -47,22 +63,24 @@ const Wallet = () => {
         cvv,
       });
 
-      // Refresh wallet balance and transactions
-      await fetchWalletBalance(user._id);
-      await fetchTransactions();
+      if (response.data) {
+        // Update both local and global state
+        setLocalWalletBalance(response.data.balance);
+        await fetchWalletData(); // Fetch fresh data including new transaction
+      }
 
       // Reset form
       setAmount('');
       setCardNumber('');
       setExpiryDate('');
       setCvv('');
-    } catch (error) {
+    } catch (err) {
       setError('Failed to add funds. Please try again.');
-      console.error('Error adding funds:', error);
+      console.error('Error adding funds:', err);
     }
   };
 
-  if (loading) {
+  if (loading && transactions.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
@@ -87,7 +105,7 @@ const Wallet = () => {
               <div className="bg-indigo-50 p-6 rounded-lg">
                 <h3 className="text-lg text-gray-600">Current Balance</h3>
                 <p className="text-3xl font-bold text-indigo-600">
-                  ${walletBalance.toFixed(2)}
+                  ${localWalletBalance.toFixed(2)}
                 </p>
               </div>
 
@@ -97,7 +115,7 @@ const Wallet = () => {
                   <div className="space-y-2">
                     {transactions.slice(0, 5).map((transaction, index) => (
                       <div
-                        key={index}
+                        key={transaction._id || index}
                         className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
                       >
                         <div>
@@ -122,6 +140,7 @@ const Wallet = () => {
             <div>
               <h3 className="text-lg font-semibold mb-4">Add Funds</h3>
               <form onSubmit={handleAddFunds} className="space-y-4">
+                {/* Form fields remain the same */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Amount</label>
                   <div className="mt-1 relative">
