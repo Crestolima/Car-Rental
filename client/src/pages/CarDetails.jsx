@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import api from "../services/api";
@@ -43,9 +43,9 @@ const CarDetails = () => {
   };
 
   const handleChange = (e) => {
-    const { make, value } = e.target;
+    const { name, value } = e.target;
     setCarData((prev) => {
-      const keys = make.split(".");
+      const keys = name.split(".");
       if (keys.length === 2) {
         return {
           ...prev,
@@ -55,19 +55,19 @@ const CarDetails = () => {
           },
         };
       }
-      return { ...prev, [make]: value };
+      return { ...prev, [name]: value };
     });
   };
 
   const handleCoordinatesChange = (e) => {
-    const { make, value } = e.target;
+    const { name, value } = e.target;
     setCarData(prev => ({
       ...prev,
       location: {
         ...prev.location,
         coordinates: {
           ...prev.location.coordinates,
-          [make]: value
+          [name]: value
         }
       }
     }));
@@ -203,7 +203,7 @@ const CarDetails = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">name</th>
+                  <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Make</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Model</th>
                   <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
                   <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
@@ -255,7 +255,7 @@ const CarDetails = () => {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">name</label>
+                <label className="block text-sm font-medium text-gray-700">Make</label>
                 <input
                   type="text"
                   name="make"

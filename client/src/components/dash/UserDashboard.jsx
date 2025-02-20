@@ -16,9 +16,10 @@ import {
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import CarBooking from '../../pages/BookingPage';
+
 import ShowAllCars from '../../pages/ShowAllCars';
 import Wallet from '../wallet/Wallet';
+import Ubookings from '../../users/Ubookings';
 
 const SCREEN_SIZES = {
   sm: 640,
@@ -298,7 +299,7 @@ const UserDashboard = () => {
       case 'cars':
         return <ShowAllCars />;
       case 'booking':
-        return <CarBooking />;
+        return <Ubookings />;
       case 'wallet':
         return <Wallet />;
       default:

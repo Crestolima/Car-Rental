@@ -19,6 +19,8 @@ import { useAuth } from '../../context/AuthContext';
 import CarDetails from '../../pages/CarDetails';
 import Users from '../../pages/Users';
 import Wallet from '../wallet/Wallet';
+import AllBookings from '../admin/AllBookings';
+import AdashContent from '../admin/AdashContent';
 
 const SCREEN_SIZES = {
   sm: 640,
@@ -274,10 +276,12 @@ const AdminDashboard = () => {
         return <CarDetails />;
       case 'users':
         return <Users />;
+      case 'bookings':
+        return <AllBookings/>;
       case 'wallet':
         return <Wallet />;
       case 'dashboard':
-        return <DashboardContent firstName={firstName} />;
+        return <AdashContent/>;
       default:
         return (
           <div className="bg-white rounded-lg shadow-sm p-6">

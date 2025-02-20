@@ -3,43 +3,40 @@ const { JWT_SECRET } = require('../config/config');
 const User = require('../models/User');
 
 const protect = async (req, res, next) => {
-  let token = req.headers.authorization?.split(' ')[1];
+  let token;
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    try {
+      token = req.headers.authorization.split(' ')[1];
+      console.log("Received Token:", token); // Debugging line
 
-  if (!token) {
-    return res.status(401).json({ message: 'Not authorized, no token provided' });
-  }
+      const decoded = jwt.verify(token, JWT_SECRET);
+      console.log("Decoded Token:", decoded); // Debugging line
 
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = await User.findById(decoded.id).select('-password');
+      req.user = await User.findById(decoded.id).select('-password');
+      console.log("Authenticated User:", req.user); // Debugging line
 
-    if (!req.user) {
-      return res.status(401).json({ message: 'User not found, authorization failed' });
+      next();
+    } catch (error) {
+      console.error("JWT Verification Error:", error);
+      return res.status(401).json({ message: 'Not authorized, token failed' });
     }
+  } else {
+    console.log("No Authorization Header Found");
+    return res.status(401).json({ message: 'Not authorized, no token' });
+  }
+};
 
-    console.log("Authenticated User:", req.user); // Debugging
-
+// New middleware for role-based authorization
+const authorize = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Not authorized' });
+    }
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'You do not have permission to perform this action' });
+    }
     next();
-  } catch (error) {
-    console.error("JWT Error:", error); // Debugging
-    return res.status(401).json({ message: 'Invalid token, authorization failed' });
-  }
+  };
 };
 
-const admin = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
-    return next();
-  } else {
-    return res.status(403).json({ message: 'Not authorized as admin' });
-  }
-};
-
-const user = (req, res, next) => {
-  if (req.user && req.user.role === 'user') {
-    return next();
-  } else {
-    return res.status(403).json({ message: 'Not authorized as user' });
-  }
-};
-
-module.exports = { protect, admin, user };
+module.exports = { protect, authorize };

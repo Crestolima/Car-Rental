@@ -14,10 +14,13 @@ import Search from "./pages/Search";
 import AdminDashboard from "./components/dash/AdminDashboard";
 import UserDashboard from "./components/dash/UserDashboard";
 import Wallet from "./components/wallet/Wallet";
-import CarBooking from "./pages/BookingPage";
+
 import ShowAllCars from "./pages/ShowAllCars";
 import Users from "./pages/Users";
 import BookingPage from "./pages/BookingPage";
+import Ubookings from "./users/Ubookings";
+import AllBookings from "./components/admin/AllBookings";
+import AdashContent from "./components/admin/AdashContent";
 
 const App = () => {
   const location = useLocation();
@@ -36,6 +39,7 @@ const App = () => {
             <Route path="/show-cars" element={<ShowAllCars />} />
            
             <Route path="/booking/:carId/:userId" element={<BookingPage />} />
+            <Route path="/ubook" element={<Ubookings />} />
             
             <Route path="/wallet" element={<Wallet />} />
             <Route path="/login" element={<Login />} />
@@ -45,6 +49,8 @@ const App = () => {
             <Route path="/admin" element={<Admin />} />
             <Route path="/user-dashboard" element={<UserDashboard />} />
             <Route path="/admin-dashboard" element={<AdminDashboard />} />
+            <Route path="/allbooks" element={<AllBookings />} />
+            <Route path="/adash" element={<AdashContent />} />
           </Routes>
         </main>
         {showFooter && <Footer />}

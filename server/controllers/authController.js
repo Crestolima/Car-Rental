@@ -71,4 +71,14 @@ const getUsers = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, getUsers };
+const getUserCount = async (req, res) => {
+  try {
+    const { role } = req.query;
+    const count = await User.countDocuments(role ? { role } : {});
+    res.json(count);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching user count' });
+  }
+};
+
+module.exports = { registerUser, loginUser, getUsers,getUserCount };
