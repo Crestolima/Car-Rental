@@ -129,7 +129,7 @@ const Ubookings = () => {
                     {booking.car?.mainImage && (
                         <>
                             <img 
-                                src={`http://localhost:5000${booking.car.mainImage}`} 
+                                src={booking.car.mainImage}
                                 alt={booking.car?.model || 'Vehicle'} 
                                 className="w-full h-full object-cover"
                             />

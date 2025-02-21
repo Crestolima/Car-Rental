@@ -74,7 +74,7 @@ const CarCard = ({ car, onSelect }) => {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3 }}
-          src={`http://localhost:5000${car.images[currentIndex]}`}
+          src={car.images[currentIndex]}
           alt={`${car.name} ${car.model}`}
           className="w-full h-full object-cover"
           onError={() => handleImageError(currentIndex)}

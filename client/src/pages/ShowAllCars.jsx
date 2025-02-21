@@ -55,7 +55,7 @@ const ShowAllCars = () => {
             <div className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
               <div className="relative h-48">
                 <img
-                  src={`http://localhost:5000${car.images[0]}`}
+                  src={car.images[0]}
                   alt={`${car.make} ${car.model}`}
                   className="w-full h-full object-cover"
                 />

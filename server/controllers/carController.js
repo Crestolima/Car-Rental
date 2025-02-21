@@ -1,6 +1,7 @@
 const Car = require('../models/Car');
 const fs = require('fs').promises;
 const path = require('path');
+const { cloudinary } = require('../config/cloudinary');
 
 const createCar = async (req, res, next) => {
   try {
@@ -10,8 +11,8 @@ const createCar = async (req, res, next) => {
       throw error;
     }
 
-    // Process uploaded files
-    const imageUrls = req.files.map(file => `/uploads/${file.filename}`);
+    // Get Cloudinary URLs from uploaded files
+    const imageUrls = req.files.map(file => file.path);
 
     let carData = {
       make: req.body.make,
@@ -58,11 +59,12 @@ const createCar = async (req, res, next) => {
     const car = await Car.create(carData);
     res.status(201).json(car);
   } catch (error) {
-    // Clean up uploaded files if there's an error
+    // Delete uploaded images from Cloudinary if there's an error
     if (req.files) {
       for (const file of req.files) {
-        await fs.unlink(file.path).catch(err => 
-          console.error('Error deleting file:', err)
+        const publicId = file.filename; // Cloudinary public ID
+        await cloudinary.uploader.destroy(publicId).catch(err => 
+          console.error('Error deleting image from Cloudinary:', err)
         );
       }
     }
@@ -81,16 +83,16 @@ const updateCar = async (req, res, next) => {
 
     // Handle new image uploads
     if (req.files && req.files.length > 0) {
-      // Delete old images
-      for (const imagePath of car.images) {
-        const fullPath = path.join(__dirname, '..', imagePath);
-        await fs.unlink(fullPath).catch(err => 
-          console.error('Error deleting old image:', err)
+      // Delete old images from Cloudinary
+      for (const imageUrl of car.images) {
+        const publicId = imageUrl.split('/').pop().split('.')[0]; // Extract public ID from URL
+        await cloudinary.uploader.destroy(publicId).catch(err => 
+          console.error('Error deleting old image from Cloudinary:', err)
         );
       }
 
-      // Add new image paths
-      req.body.images = req.files.map(file => `/uploads/${file.filename}`);
+      // Add new image URLs
+      req.body.images = req.files.map(file => file.path);
     }
 
     // Parse JSON fields
@@ -118,11 +120,12 @@ const updateCar = async (req, res, next) => {
     const updatedCar = await car.save();
     res.json(updatedCar);
   } catch (error) {
-    // Clean up new uploaded files if there's an error
+    // Delete new uploaded images from Cloudinary if there's an error
     if (req.files) {
       for (const file of req.files) {
-        await fs.unlink(file.path).catch(err => 
-          console.error('Error deleting file:', err)
+        const publicId = file.filename;
+        await cloudinary.uploader.destroy(publicId).catch(err => 
+          console.error('Error deleting image from Cloudinary:', err)
         );
       }
     }
@@ -139,11 +142,11 @@ const deleteCar = async (req, res, next) => {
       throw error;
     }
 
-    // Delete associated images
-    for (const imagePath of car.images) {
-      const fullPath = path.join(__dirname, '..', imagePath);
-      await fs.unlink(fullPath).catch(err => 
-        console.error('Error deleting image:', err)
+    // Delete associated images from Cloudinary
+    for (const imageUrl of car.images) {
+      const publicId = imageUrl.split('/').pop().split('.')[0];
+      await cloudinary.uploader.destroy(publicId).catch(err => 
+        console.error('Error deleting image from Cloudinary:', err)
       );
     }
 

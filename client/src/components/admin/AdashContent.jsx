@@ -1,199 +1,141 @@
-import React, { useState, useEffect } from 'react';
-import { BarChart, LineChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Users, Calendar, DollarSign } from 'lucide-react';
-import { Car as Caricon } from "lucide-react";
-import axios from 'axios';
+import React, { useEffect, useState } from "react";
+import api from "../../services/api";
+import {
+  ArrowUp,
+  ArrowDown,
+  Users,
+  Calendar,
+  DollarSign,
+  Star,
+  Activity,
+  
+} from "lucide-react";
 
-const StatCard = ({ title, value, icon: Icon, change }) => (
-  <div className="bg-white rounded-lg p-6 shadow-sm">
-    <div className="flex items-center justify-between mb-4">
-      <div>
-        <h3 className="text-sm font-medium text-gray-500">{title}</h3>
-        <p className="text-2xl font-semibold mt-1">{value}</p>
-      </div>
-      <div className="bg-blue-100 p-3 rounded-lg">
-        <Icon className="w-6 h-6 text-blue-600" />
+const CustomCard = ({ children, className = "" }) => (
+  <div
+    className={`bg-white rounded-xl transition-shadow  shadow-sm border border-gray-100 ${className}`}
+  >
+    {children}
+  </div>
+);
+
+const StatCard = ({ title, value, change, icon: Icon }) => (
+  <CustomCard className="transition-all duration-300 hover:shadow-md">
+    <div className="p-6">
+      <div className="flex items-start justify-between">
+        <div className="space-y-2">
+          <span className="text-sm font-medium text-gray-500">{title}</span>
+          <div className="flex items-baseline space-x-2">
+            <h3 className="text-2xl font-bold tracking-tight">{value}</h3>
+            
+          </div>
+          
+        </div>
+        <div
+          className={`p-3 rounded-xl ${
+            change >= 0 ? "bg-emerald-50" : "bg-indigo-50"
+          }`}
+        >
+          <Icon
+            className={`w-6 h-6 ${
+              change >= 0 ? "text-emerald-600" : "text-indigo-600"
+            }`}
+          />
+        </div>
       </div>
     </div>
-    <div className="flex items-center">
-      <span className={`text-sm ${change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-        {change >= 0 ? '+' : ''}{change}%
-      </span>
-      <span className="text-sm text-gray-500 ml-2">from last month</span>
+  </CustomCard>
+);
+
+const LoadingSpinner = () => (
+  <div className="flex justify-center items-center h-[calc(100vh-6rem)]">
+    <div className="flex flex-col items-center space-y-4">
+      <div className="relative w-12 h-12">
+        <div className="absolute top-0 left-0 w-full h-full border-4 border-indigo-200 rounded-full"></div>
+        <div className="absolute top-0 left-0 w-full h-full border-4 border-indigo-600 rounded-full border-t-transparent animate-spin"></div>
+      </div>
+      <p className="text-gray-500 animate-pulse">Loading dashboard data...</p>
     </div>
   </div>
 );
 
-const AdashContent = () => {
-  const [stats, setStats] = useState({
-    users: 0,
-    cars: 0,
-    earnings: 0,
-    bookings: 0,
-  });
+const ErrorMessage = ({ message }) => (
+  <div className="p-4 rounded-lg bg-rose-50 border border-rose-200">
+    <div className="flex items-center space-x-3">
+      <div className="flex-shrink-0">
+        <Activity className="h-5 w-5 text-rose-400" />
+      </div>
+      <p className="text-sm font-medium text-rose-800">{message}</p>
+    </div>
+  </div>
+);
 
-  const [bookingData, setBookingData] = useState([]);
-  const [earningsData, setEarningsData] = useState([]);
+const defaultStats = {
+  total: "0",
+  change: 0,
+  description: "No data available",
+};
+
+const initialData = {
+  stats: {
+    users: { ...defaultStats },
+    bookings: { ...defaultStats },
+    revenue: { ...defaultStats },
+    rating: { ...defaultStats },
+  },
+};
+
+const AdashContent = () => {
+  const [dashboardData, setDashboardData] = useState(initialData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
-        try {
-          setLoading(true);
-          
-          const response = await axios.get('/api/dashboard/stats');
-          const dashboardData = response.data;
-      
-          setStats({
-            users: dashboardData.stats.users.total,
-            cars: dashboardData.stats.cars.total,
-            earnings: dashboardData.stats.earnings.total,
-            bookings: dashboardData.stats.bookings.total
-          });
-      
-          setBookingData(dashboardData.charts.bookings);
-          setEarningsData(dashboardData.charts.earnings);
-      
-        } catch (err) {
-          console.error('Error fetching dashboard data:', err);
-          setError(
-            `Failed to load dashboard data: ${err.response?.data?.error || err.message}`
-          );
-        } finally {
-          setLoading(false);
-        }
-      };
+      try {
+        const response = await api.get("/dashboard/stats");
+        // Merge the API response with default values to ensure all properties exist
+        setDashboardData({
+          stats: {
+            ...initialData.stats,
+            ...(response.data?.stats || {}),
+          },
+        });
+      } catch (err) {
+        setError("Failed to fetch dashboard data");
+      } finally {
+        setLoading(false);
+      }
+    };
 
     fetchDashboardData();
   }, []);
 
-  const processMonthlyData = (bookings, type) => {
-    if (!Array.isArray(bookings)) {
-      console.error('Invalid bookings data:', bookings);
-      return [];
-    }
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage message={error} />;
 
-    const months = {};
-    
-    bookings.forEach(booking => {
-      if (!booking || !booking.createdAt) return;
+  const { stats } = dashboardData;
 
-      const date = new Date(booking.createdAt);
-      if (isNaN(date.getTime())) return;
-
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      
-      if (!months[monthKey]) {
-        months[monthKey] = {
-          month: new Date(date.getFullYear(), date.getMonth(), 1).toLocaleString('default', { month: 'short' }),
-          bookings: 0,
-          earnings: 0
-        };
-      }
-      
-      months[monthKey].bookings += 1;
-      if (booking.status === 'confirmed' && typeof booking.totalPrice === 'number') {
-        months[monthKey].earnings += booking.totalPrice;
-      }
-    });
-
-    return Object.values(months).slice(-6).map(data => ({
-      month: data.month,
-      [type]: type === 'bookings' ? data.bookings : data.earnings
-    }));
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-lg text-gray-600">Loading dashboard data...</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-50 p-4 rounded-lg">
-        <p className="text-red-600">{error}</p>
-        <button 
-          onClick={() => window.location.reload()} 
-          className="mt-2 text-sm text-blue-600 hover:text-blue-800"
-        >
-          Try again
-        </button>
-      </div>
-    );
-  }
+  const statCards = [
+    { key: "users", title: "Total Users", icon: Users },
+    { key: "bookings", title: "Total Bookings", icon: Calendar },
+    { key: "revenue", title: "Total Revenue", icon: DollarSign },
+    { key: "rating", title: "Average Rating", icon: Star },
+  ];
 
   return (
-    <div className="space-y-6">
-      {/* Stats Grid */}
+    <div className="space-y-8 p-6 bg-gray-50 min-h-screen">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Total Users"
-          value={stats.users}
-          icon={Users}
-          change={12.5}
-        />
-        <StatCard
-          title="Available Cars"
-          value={stats.cars}
-          icon={Caricon}
-          change={8.2}
-        />
-        <StatCard
-          title="Total Revenue"
-          value={`$${stats.earnings.toLocaleString()}`}
-          icon={DollarSign}
-          change={15.3}
-        />
-        <StatCard
-          title="Total Bookings"
-          value={stats.bookings}
-          icon={Calendar}
-          change={-4.8}
-        />
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Bookings Chart */}
-        <div className="bg-white p-6 rounded-lg shadow-sm">
-          <h3 className="text-lg font-semibold mb-4">Monthly Bookings</h3>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={bookingData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="bookings" fill="#3B82F6" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Revenue Chart */}
-        <div className="bg-white p-6 rounded-lg shadow-sm">
-          <h3 className="text-lg font-semibold mb-4">Monthly Revenue</h3>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={earningsData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
-                <Line 
-                  type="monotone" 
-                  dataKey="earnings" 
-                  stroke="#3B82F6" 
-                  strokeWidth={2}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        {statCards.map(({ key, title, icon }) => (
+          <StatCard
+            key={key}
+            title={title}
+            value={stats[key]?.total || defaultStats.total}
+            change={stats[key]?.change || defaultStats.change}
+            icon={icon}
+            description={stats[key]?.description || defaultStats.description}
+          />
+        ))}
       </div>
     </div>
   );

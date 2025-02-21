@@ -73,7 +73,7 @@ const AllBookings = () => {
               <div className="space-y-4">
                 <div className="aspect-video relative rounded-lg overflow-hidden bg-gray-100">
                   <img 
-                    src={`http://localhost:5000${booking.car.images[0]}`}
+                    src={booking.car.images[0]}
                     alt={`${booking.car?.make} ${booking.car?.model}`}
                     className="object-cover w-full h-full"
                   />
