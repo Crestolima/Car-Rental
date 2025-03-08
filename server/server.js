@@ -15,6 +15,7 @@ const walletRoutes = require('./routes/wallet');
 const paymentRoutes = require('./routes/paymentRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
+const { updateExpiredBookings } = require('./utils/bookingUpdater');
 
 // Initialize express
 const app = express();
@@ -99,6 +100,10 @@ function gracefulShutdown() {
     }
   });
 }
+
+updateExpiredBookings()
+  .then(result => console.log('Initial booking update completed:', result))
+  .catch(error => console.error('Initial booking update failed:', error));
 
 // Start server
 const server = app.listen(PORT, () => {

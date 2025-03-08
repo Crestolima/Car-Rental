@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import api from '../services/api';
+import ReviewModal from '../pages/ReviewModal';
 
 const STATUS_STYLES = {
     completed: {
@@ -27,6 +28,8 @@ const Ubookings = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeFilter, setActiveFilter] = useState('all');
+    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+    const [selectedBooking, setSelectedBooking] = useState(null);
 
     useEffect(() => {
         fetchBookings();
@@ -36,7 +39,30 @@ const Ubookings = () => {
         try {
             const user = JSON.parse(localStorage.getItem('user'));
             const response = await api.get(`/bookings/${user._id}`);
-            setBookings(response.data);
+            
+            // Fetch review status for completed bookings
+            const bookingsWithReviewStatus = await Promise.all(
+                response.data.map(async (booking) => {
+                    if (booking.status === 'completed') {
+                        try {
+                            const reviewResponse = await api.get(`/reviews/booking/${booking._id}`);
+                            return {
+                                ...booking,
+                                hasReview: reviewResponse.data.exists || false
+                            };
+                        } catch (error) {
+                            console.error(`Error fetching review status for booking ${booking._id}:`, error);
+                            return {
+                                ...booking,
+                                hasReview: false
+                            };
+                        }
+                    }
+                    return booking;
+                })
+            );
+
+            setBookings(bookingsWithReviewStatus);
         } catch (err) {
             setError(err.response?.data?.message || err.message);
             toast.error('Failed to load bookings');
@@ -58,6 +84,23 @@ const Ubookings = () => {
             toast.success('Booking cancelled successfully. Refund has been processed.');
         } catch (error) {
             toast.error(error.response?.data?.message || 'Error cancelling booking');
+        }
+    };
+
+    const handleReviewSubmit = async (bookingId) => {
+        try {
+            setBookings(prevBookings =>
+                prevBookings.map(booking =>
+                    booking._id === bookingId
+                        ? { ...booking, hasReview: true }
+                        : booking
+                )
+            );
+            setIsReviewModalOpen(false);
+            setSelectedBooking(null);
+            toast.success('Review submitted successfully');
+        } catch (error) {
+            toast.error('Failed to submit review');
         }
     };
 
@@ -87,6 +130,126 @@ const Ubookings = () => {
     const calculateRentalDuration = (startDate, endDate) => {
         const diffTime = Math.abs(new Date(endDate) - new Date(startDate));
         return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    };
+
+    const renderBookingCard = (booking) => {
+        const statusStyle = STATUS_STYLES[booking.status] || STATUS_STYLES.default;
+        const daysRented = calculateRentalDuration(booking.startDate, booking.endDate);
+        
+        return (
+            <div key={booking._id} className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100">
+                <div className="relative h-56 overflow-hidden">
+                    {booking.car?.mainImage && (
+                        <>
+                            <img 
+                                src={booking.car.mainImage}
+                                alt={booking.car?.model || 'Vehicle'} 
+                                className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                        </>
+                    )}
+                    <div className="absolute bottom-0 left-0 p-5 w-full">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-white">
+                                {booking.car?.model || 'Vehicle not specified'}
+                            </h2>
+                            <div 
+                                className={`flex items-center space-x-1 px-3 py-1 rounded-full text-sm font-medium ${statusStyle.bg} ${statusStyle.text}`}
+                            >
+                                <svg className="w-4 h-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path d={statusStyle.icon} />
+                                </svg>
+                                <span>{booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1)}</span>
+                            </div>
+                        </div>
+                        {booking.car?.type && (
+                            <p className="text-sm text-gray-200 mt-1">
+                                {booking.car.type} • {booking.car.transmission}
+                            </p>
+                        )}
+                    </div>
+                </div>
+
+                <div className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <h3 className="text-xs uppercase text-gray-500 font-semibold tracking-wider mb-3">Trip Details</h3>
+                            <div className="space-y-4">
+                                <DateDisplay label="Start Date" date={formatDate(booking.startDate)} />
+                                <DateDisplay label="End Date" date={formatDate(booking.endDate)} />
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 className="text-xs uppercase text-gray-500 font-semibold tracking-wider mb-3">Location Details</h3>
+                            <div className="space-y-4">
+                                <LocationDisplay label="Pickup Location" location={booking.pickupLocation} />
+                                <LocationDisplay label="Dropoff Location" location={booking.dropoffLocation} />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                        <div className="flex flex-col">
+                            <span className="text-sm text-gray-500">Rental Charge</span>
+                            <span className="font-medium text-gray-800">
+                                {daysRented} day{daysRented !== 1 ? 's' : ''}
+                                {booking.car?.pricePerDay && ` @ ${formatPrice(booking.car.pricePerDay)}/day`}
+                            </span>
+                        </div>
+                        
+                        <div className="bg-gray-50 px-4 py-3 rounded-lg">
+                            <span className="text-xs text-gray-500 block">Total price</span>
+                            <div className="flex items-center">
+                                <span className="text-lg font-bold text-gray-800">
+                                    {formatPrice(booking.totalPrice)}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Cancel button for active bookings */}
+                    {booking.status !== 'completed' && booking.status !== 'cancelled' && (
+                        <button 
+                            className="mt-6 w-full py-2 px-4 bg-red-400 hover:bg-red-600 text-white rounded-lg transition-colors"
+                            onClick={() => handleCancelBooking(booking._id)}
+                        >
+                            Cancel Booking
+                        </button>
+                    )}
+
+                    {/* Review section for completed bookings */}
+                    {booking.status === 'completed' && (
+                        <div className="mt-4 text-center">
+                            {booking.hasReview ? (
+                                <div className="py-2 px-4 bg-green-50 text-green-700 rounded-lg">
+                                    <span className="flex items-center justify-center gap-2">
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        Review submitted
+                                    </span>
+                                </div>
+                            ) : (
+                                <button
+                                    className="w-full py-2 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                                    onClick={() => {
+                                        setSelectedBooking(booking);
+                                        setIsReviewModalOpen(true);
+                                    }}
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                    Write a Review
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
     };
 
     if (loading) {
@@ -119,99 +282,8 @@ const Ubookings = () => {
         ? bookings 
         : bookings.filter(booking => booking.status === activeFilter);
 
-    const renderBookingCard = (booking) => {
-        const statusStyle = STATUS_STYLES[booking.status] || STATUS_STYLES.default;
-        const daysRented = calculateRentalDuration(booking.startDate, booking.endDate);
-        
-        return (
-            <div key={booking._id} className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100">
-                <div className="relative h-56 overflow-hidden">
-                    {booking.car?.mainImage && (
-                        <>
-                            <img 
-                                src={booking.car.mainImage}
-                                alt={booking.car?.model || 'Vehicle'} 
-                                className="w-full h-full object-cover"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                        </>
-                    )}
-                    <div className="absolute bottom-0 left-0 p-5 w-full">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-xl font-bold text-white">
-                                {booking.car?.model || 'Vehicle not specified'}
-                            </h2>
-                            <div className={`flex items-center space-x-1 px-3 py-1 rounded-full text-sm font-medium ${statusStyle.bg} ${statusStyle.text}`}>
-                                <svg className="w-4 h-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path d={statusStyle.icon} />
-                                </svg>
-                                <span>{booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1)}</span>
-                            </div>
-                        </div>
-                        {booking.car?.type && (
-                            <p className="text-sm text-gray-200 mt-1">
-                                {booking.car.type} • {booking.car.transmission}
-                            </p>
-                        )}
-                    </div>
-                </div>
-
-                <div className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        {/* Trip Details */}
-                        <div>
-                            <h3 className="text-xs uppercase text-gray-500 font-semibold tracking-wider mb-3">Trip Details</h3>
-                            <div className="space-y-4">
-                                <DateDisplay label="Start Date" date={formatDate(booking.startDate)} />
-                                <DateDisplay label="End Date" date={formatDate(booking.endDate)} />
-                            </div>
-                        </div>
-
-                        {/* Location Details */}
-                        <div>
-                            <h3 className="text-xs uppercase text-gray-500 font-semibold tracking-wider mb-3">Location Details</h3>
-                            <div className="space-y-4">
-                                <LocationDisplay label="Pickup Location" location={booking.pickupLocation} />
-                                <LocationDisplay label="Dropoff Location" location={booking.dropoffLocation} />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Pricing Section */}
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                        <div className="flex flex-col">
-                            <span className="text-sm text-gray-500">Rental duration</span>
-                            <span className="font-medium text-gray-800">
-                                {daysRented} day{daysRented !== 1 ? 's' : ''}
-                                {booking.car?.pricePerDay && ` @ ${formatPrice(booking.car.pricePerDay)}/day`}
-                            </span>
-                        </div>
-                        
-                        <div className="bg-gray-50 px-4 py-3 rounded-lg">
-                            <span className="text-xs text-gray-500 block">Total price</span>
-                            <div className="flex items-center">
-                                <span className="text-lg font-bold text-gray-800">
-                                    {formatPrice(booking.totalPrice)}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <button 
-                        className="mt-6 w-full py-2 px-4 bg-red-400 hover:bg-red-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        onClick={() => handleCancelBooking(booking._id)}
-                        disabled={booking.status === 'cancelled'}
-                    >
-                        {booking.status === 'cancelled' ? 'Cancelled' : 'Cancel Booking'}
-                    </button>
-                </div>
-            </div>
-        );
-    };
-
     return (
         <div className="container mx-auto px-4 py-8 max-w-6xl">
-            {/* Filter Buttons */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex space-x-2 overflow-x-auto pb-2">
                     {FILTER_OPTIONS.map(filter => (
@@ -233,7 +305,6 @@ const Ubookings = () => {
                 </div>
             </div>
 
-            {/* No Bookings Message */}
             {filteredBookings.length === 0 ? (
                 <div className="text-center bg-gray-50 rounded-xl p-16 shadow-sm">
                     <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -253,6 +324,19 @@ const Ubookings = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {filteredBookings.map(renderBookingCard)}
                 </div>
+            )}
+
+            {/* Review Modal */}
+            {selectedBooking && (
+                <ReviewModal
+                    isOpen={isReviewModalOpen}
+                    onClose={() => {
+                        setIsReviewModalOpen(false);
+                        setSelectedBooking(null);
+                    }}
+                    booking={selectedBooking}
+                    onReviewSubmitted={() => handleReviewSubmit(selectedBooking._id)}
+                />
             )}
         </div>
     );

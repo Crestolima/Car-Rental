@@ -1,8 +1,45 @@
-# React + Vite
+# Car Rental Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Overview
+This is the client-side application for a car rental service built using the MERN stack (MongoDB, Express.js, React.js, Node.js).
 
-Currently, two official plugins are available:
+## Installation
+```bash
+npm install
+npm start
+```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Features
+- User authentication
+- Car listing and search
+- Booking management
+- User profile
+- Responsive design
+
+## Project Structure
+```
+client/
+├── public/
+├── src/
+│   ├── components/
+│   ├── pages/
+│   ├── assets/
+│   ├── services/
+│   └── utils/
+└── README.md
+```
+
+## Dependencies
+- React.js
+- React Router
+- Axios
+- Redux (if used)
+- Other relevant dependencies
+
+## Contributing
+1. Fork the repository
+2. Create a branch
+3. Submit a pull request
+
+## License
+MIT License

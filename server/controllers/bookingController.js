@@ -5,6 +5,96 @@ const Car = require('../models/Car');
 const User = require('../models/User');
 const mongoose = require('mongoose');
 
+// New function to update booking status to inProgress on startDate
+const updateBookingStatus = async (req, res) => {
+  try {
+    // Get current date at midnight
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+    
+    // Find bookings that should be marked as inProgress
+    // Criteria: status is 'confirmed' AND startDate is today
+    const bookingsToUpdate = await Booking.find({
+      status: 'confirmed',
+      startDate: {
+        $gte: currentDate, 
+        $lt: new Date(currentDate.getTime() + 24 * 60 * 60 * 1000) // less than tomorrow
+      }
+    });
+    
+    console.log(`🔍 Found ${bookingsToUpdate.length} bookings to update to inProgress`);
+    
+    if (bookingsToUpdate.length === 0) {
+      return res.status(200).json({ 
+        message: 'No bookings to update',
+        updatedCount: 0
+      });
+    }
+    
+    // Update all matching bookings
+    const updatePromises = bookingsToUpdate.map(booking => {
+      console.log(`✅ Updating booking ${booking._id} to inProgress`);
+      booking.status = 'inProgress';
+      return booking.save();
+    });
+    
+    await Promise.all(updatePromises);
+    
+    return res.status(200).json({
+      message: 'Bookings updated to inProgress successfully',
+      updatedCount: bookingsToUpdate.length,
+      bookings: bookingsToUpdate
+    });
+    
+  } catch (error) {
+    console.error("❌ Update Booking Status Error:", error);
+    return res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Scheduled function to be called by a cron job (no HTTP response)
+const scheduledStatusUpdate = async () => {
+  try {
+    // Get current date at midnight
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+    
+    // Find bookings that should be marked as inProgress
+    const bookingsToUpdate = await Booking.find({
+      status: 'confirmed',
+      startDate: {
+        $gte: currentDate, 
+        $lt: new Date(currentDate.getTime() + 24 * 60 * 60 * 1000)
+      }
+    });
+    
+    console.log(`🔍 Scheduled task: Found ${bookingsToUpdate.length} bookings to update to inProgress`);
+    
+    if (bookingsToUpdate.length === 0) {
+      console.log('No bookings to update to inProgress');
+      return { updatedCount: 0 };
+    }
+    
+    // Update all matching bookings
+    const updatePromises = bookingsToUpdate.map(booking => {
+      console.log(`✅ Updating booking ${booking._id} to inProgress`);
+      booking.status = 'inProgress';
+      return booking.save();
+    });
+    
+    const updatedBookings = await Promise.all(updatePromises);
+    console.log(`✅ Updated ${updatedBookings.length} bookings to inProgress`);
+    
+    return { 
+      updatedCount: updatedBookings.length,
+      bookings: updatedBookings
+    };
+  } catch (error) {
+    console.error("❌ Scheduled Update Booking Status Error:", error);
+    throw error;
+  }
+};
+
 const createBooking = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -214,8 +304,9 @@ const completeBooking = async (req, res) => {
       return res.status(404).json({ message: 'Booking not found' });
     }
     
-    if (booking.status !== 'confirmed') {
-      return res.status(400).json({ message: 'Only confirmed bookings can be completed' });
+    // Updated to allow completion from either confirmed or inProgress status
+    if (booking.status !== 'confirmed' && booking.status !== 'inProgress') {
+      return res.status(400).json({ message: 'Only confirmed or in-progress bookings can be completed' });
     }
     
     // Update car availability back to true
@@ -264,6 +355,7 @@ const cancelBooking = async (req, res) => {
       return res.status(404).json({ message: 'Booking not found' });
     }
     
+    // Updated to not allow cancellation of inProgress bookings
     if (booking.status !== 'confirmed') {
       await session.abortTransaction();
       session.endSession();
@@ -370,5 +462,7 @@ module.exports = {
   getBookings,
   completeBooking,
   cancelBooking,
-  getAllBookings
+  getAllBookings,
+  updateBookingStatus,
+  scheduledStatusUpdate
 };

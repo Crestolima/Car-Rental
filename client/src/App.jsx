@@ -51,6 +51,7 @@ const App = () => {
             <Route path="/admin-dashboard" element={<AdminDashboard />} />
             <Route path="/allbooks" element={<AllBookings />} />
             <Route path="/adash" element={<AdashContent />} />
+            {/*} <Route path="/car/:carId/reviews" element={<Ca />} />*/}
           </Routes>
         </main>
         {showFooter && <Footer />}

@@ -1,4 +1,5 @@
 const Wallet = require('../models/Wallet');
+
 const { v4: uuidv4 } = require('uuid');
 
 const addFunds = async (req, res, next) => {
@@ -78,4 +79,39 @@ const getWallet = async (req, res, next) => {
   }
 };
 
-module.exports = { addFunds, namePayment ,getWallet};
+const calculateBookingPayments = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    
+    const wallet = await Wallet.findOne({ userId });
+    
+    if (!wallet) {
+      return res.status(404).json({ message: 'Wallet not found' });
+    }
+    
+    // Filter transactions that are booking payments
+    const bookingPayments = wallet.transactions.filter(transaction => 
+      transaction.type === 'credit' && 
+      transaction.description.includes('Received payment for booking')
+    );
+    
+    // Calculate total amount from booking payments
+    const totalBookingAmount = bookingPayments.reduce((total, transaction) => 
+      total + transaction.amount, 0
+    );
+    
+    // Count the number of booking transactions
+    const bookingCount = bookingPayments.length;
+    
+    res.status(200).json({
+      totalBookingAmount,
+      bookingCount,
+      bookingPayments
+    });
+    
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { addFunds, namePayment ,getWallet,calculateBookingPayments};

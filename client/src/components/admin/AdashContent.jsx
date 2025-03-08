@@ -8,18 +8,17 @@ import {
   DollarSign,
   Star,
   Activity,
-  
 } from "lucide-react";
 
 const CustomCard = ({ children, className = "" }) => (
   <div
-    className={`bg-white rounded-xl transition-shadow  shadow-sm border border-gray-100 ${className}`}
+    className={`bg-white rounded-xl transition-shadow shadow-sm border border-gray-100 ${className}`}
   >
     {children}
   </div>
 );
 
-const StatCard = ({ title, value, change, icon: Icon }) => (
+const StatCard = ({ title, value, change, icon: Icon, description }) => (
   <CustomCard className="transition-all duration-300 hover:shadow-md">
     <div className="p-6">
       <div className="flex items-start justify-between">
@@ -27,9 +26,15 @@ const StatCard = ({ title, value, change, icon: Icon }) => (
           <span className="text-sm font-medium text-gray-500">{title}</span>
           <div className="flex items-baseline space-x-2">
             <h3 className="text-2xl font-bold tracking-tight">{value}</h3>
-            
+            {change !== undefined && (
+              <span className={`text-sm font-medium ${change >= 0 ? "text-emerald-600" : "text-indigo-600"}`}>
+                {change > 0 ? `+${change}` : change}%
+              </span>
+            )}
           </div>
-          
+          {description && (
+            <p className="text-sm text-gray-500">{description}</p>
+          )}
         </div>
         <div
           className={`p-3 rounded-xl ${
@@ -83,6 +88,10 @@ const initialData = {
     revenue: { ...defaultStats },
     rating: { ...defaultStats },
   },
+  ratings: {
+    averageRating: 0,
+    totalReviews: 0
+  }
 };
 
 const AdashContent = () => {
@@ -93,15 +102,28 @@ const AdashContent = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const response = await api.get("/dashboard/stats");
-        // Merge the API response with default values to ensure all properties exist
+        // Fetch dashboard stats
+        const statsResponse = await api.get("/dashboard/stats");
+        
+        // Fetch overall ratings
+        const ratingsResponse = await api.get("/reviews/stats");
+        
+        // Merge the API responses with default values
         setDashboardData({
           stats: {
             ...initialData.stats,
-            ...(response.data?.stats || {}),
+            ...(statsResponse.data?.stats || {}),
+            // Update the rating stat with data from the ratings endpoint
+            rating: {
+              total: ratingsResponse.data?.overall?.averageRating?.toString() || "0",
+              change: 0, // You might calculate this if you have historical data
+              description: `Based on ${ratingsResponse.data?.overall?.totalReviews || 0} reviews`
+            }
           },
+          ratings: ratingsResponse.data?.overall || initialData.ratings
         });
       } catch (err) {
+        console.error("Dashboard data fetch error:", err);
         setError("Failed to fetch dashboard data");
       } finally {
         setLoading(false);
@@ -114,26 +136,32 @@ const AdashContent = () => {
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={error} />;
 
-  const { stats } = dashboardData;
+  const { stats, ratings } = dashboardData;
 
   const statCards = [
     { key: "users", title: "Total Users", icon: Users },
     { key: "bookings", title: "Total Bookings", icon: Calendar },
     { key: "revenue", title: "Total Revenue", icon: DollarSign },
-    { key: "rating", title: "Average Rating", icon: Star },
+    { 
+      key: "rating", 
+      title: "Average Rating", 
+      icon: Star,
+      value: ratings.averageRating.toFixed(1),
+      description: `From ${ratings.totalReviews} reviews` 
+    },
   ];
 
   return (
     <div className="space-y-8 p-6 bg-gray-50 min-h-screen">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statCards.map(({ key, title, icon }) => (
+        {statCards.map(({ key, title, icon, value, description }) => (
           <StatCard
             key={key}
             title={title}
-            value={stats[key]?.total || defaultStats.total}
+            value={value || stats[key]?.total || defaultStats.total}
             change={stats[key]?.change || defaultStats.change}
             icon={icon}
-            description={stats[key]?.description || defaultStats.description}
+            description={description || stats[key]?.description || defaultStats.description}
           />
         ))}
       </div>

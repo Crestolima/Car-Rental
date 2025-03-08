@@ -121,45 +121,17 @@ const StatsCard = ({ title, items }) => (
   </div>
 );
 
-const DashboardContent = ({ firstName }) => (
-  <div className="space-y-6">
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <h2 className="text-2xl font-bold text-gray-900 mb-4">Welcome back, {firstName}!</h2>
-      <p className="text-gray-600">
-        Here's your admin dashboard overview. Select an item from the sidebar to view different sections.
-      </p>
-    </div>
-
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <StatsCard
-        title="Quick Stats"
-        items={[
-          { label: 'Total Users', value: '1,234' },
-          { label: 'Active Sessions', value: '56' },
-          { label: 'Today\'s Revenue', value: '$1,234' }
-        ]}
-      />
-      <StatsCard
-        title="Recent Activity"
-        items={[
-          { label: 'New user registration', status: 'green' },
-          { label: 'Payment received', status: 'blue' },
-          { label: 'System update completed', status: 'yellow' }
-        ]}
-      />
-      <StatsCard
-        title="System Status"
-        items={[
-          { label: 'Server Status', value: 'Online', valueColor: 'text-green-500' },
-          { label: 'Last Backup', value: '2 hours ago' },
-          { label: 'System Load', value: '42%' }
-        ]}
-      />
-    </div>
-  </div>
-);
-
-const Header = ({ toggleSidebar, isSidebarOpen, isSidebarCollapsed, isMobile, fullName, setShowLogoutModal }) => (
+const Header = ({ 
+  toggleSidebar, 
+  isSidebarOpen, 
+  isSidebarCollapsed, 
+  isMobile, 
+  fullName, 
+  setShowLogoutModal,
+  searchQuery,
+  setSearchQuery,
+  handleSearch
+}) => (
   <header className="fixed top-0 left-0 right-0 h-16 bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-between px-4 md:px-8 z-30">
     <div className="flex items-center">
       <button
@@ -182,10 +154,20 @@ const Header = ({ toggleSidebar, isSidebarOpen, isSidebarCollapsed, isMobile, fu
       <div className="hidden md:flex items-center bg-white/10 rounded-lg">
         <input
           type="text"
-          placeholder="Search..."
+          placeholder="Search users..."
           className="w-48 lg:w-64 px-4 py-1.5 bg-transparent text-white placeholder-white/70 outline-none"
+          value={searchQuery}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            // Trigger search immediately when typing
+            handleSearch(e.target.value);
+          }}
         />
-        <button className="p-2 text-white/70 hover:text-white" aria-label="Search">
+        <button 
+          className="p-2 text-white/70 hover:text-white" 
+          aria-label="Search"
+          onClick={() => handleSearch(searchQuery)}
+        >
           <Search className="w-4 h-4" />
         </button>
       </div>
@@ -215,6 +197,8 @@ const AdminDashboard = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < SCREEN_SIZES.lg);
   const [screenSize, setScreenSize] = useState(window.innerWidth);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [userSearchTerm, setUserSearchTerm] = useState('');
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -265,8 +249,23 @@ const AdminDashboard = () => {
 
   const handleSidebarItemClick = (itemId) => {
     setActiveItem(itemId);
+    // Clear search when changing sections
+    if (itemId !== 'users') {
+      setSearchQuery('');
+      setUserSearchTerm('');
+    }
     if (screenSize < SCREEN_SIZES.lg) {
       setIsSidebarOpen(false);
+    }
+  };
+
+  // Modified to accept a direct search term parameter
+  const handleSearch = (term) => {
+    const searchTerm = term || searchQuery.trim();
+    if (searchTerm) {
+      // Set the active item to users and store the search term
+      setActiveItem('users');
+      setUserSearchTerm(searchTerm);
     }
   };
 
@@ -275,13 +274,13 @@ const AdminDashboard = () => {
       case 'cars':
         return <CarDetails />;
       case 'users':
-        return <Users />;
+        return <Users searchTerm={userSearchTerm} />;
       case 'bookings':
-        return <AllBookings/>;
+        return <AllBookings />;
       case 'wallet':
         return <Wallet />;
       case 'dashboard':
-        return <AdashContent/>;
+        return <AdashContent />;
       default:
         return (
           <div className="bg-white rounded-lg shadow-sm p-6">
@@ -305,6 +304,9 @@ const AdminDashboard = () => {
         isMobile={isMobile}
         fullName={fullName}
         setShowLogoutModal={setShowLogoutModal}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        handleSearch={handleSearch}
       />
 
       <LogoutModal 
